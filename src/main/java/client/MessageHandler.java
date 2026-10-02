@@ -363,8 +363,7 @@ public class MessageHandler {
 
 
                 int npcId = m.reader().readByte();
-                Boolean handled = JavaToLua.call("core.LuaBridge.onTalk", new Object[]{conn, npcId});
-                isHandledByLua = Boolean.TRUE.equals(handled);
+                isHandledByLua = JavaToLua.call("core.LuaBridge.onTalk", new Object[]{conn, npcId});
                 if (isHandledByLua) {
                     return;
                 }

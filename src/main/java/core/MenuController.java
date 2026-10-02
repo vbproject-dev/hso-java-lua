@@ -525,8 +525,8 @@ public class MenuController {
         byte menuId = m.reader().readByte();
         byte index = m.reader().readByte();
 
-        boolean handled = JavaToLua.call("core.LuaBridge.onSelectMenu", new Object[]{conn, npcId, menuId, index});
-        if (Boolean.TRUE.equals(handled)) {
+        boolean isHandledByLua = JavaToLua.call("core.LuaBridge.onSelectMenu", new Object[]{conn, npcId, menuId, index});
+        if (isHandledByLua) {
             return;
         }
 
@@ -5454,7 +5454,7 @@ public class MenuController {
         }
     }
 
-    private static void Menu_DaDichChuyen10(Session conn, byte index) throws IOException {
+    public static void Menu_DaDichChuyen10(Session conn, byte index) throws IOException {
         if (conn.ac_admin < 10 && conn.p.item.wear[11] != null && (conn.p.item.wear[11].id == 3599 || conn.p.item.wear[11].id == 3593
                 || conn.p.item.wear[11].id == 3596)) {
             return;

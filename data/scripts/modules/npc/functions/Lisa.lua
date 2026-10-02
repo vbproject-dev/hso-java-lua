@@ -19,6 +19,7 @@ return {
             {
                 name = "Black Market",
                 action = function()
+                    Java.callStatic("core.MenuController", "Menu_DaDichChuyen10", session, 1)
                 end
             },
         })

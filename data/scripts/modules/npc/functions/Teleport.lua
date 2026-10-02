@@ -1,17 +1,19 @@
 --[[
---Filename: Teleport.lua
---Lokasi  : data/scripts/modules/npc/functions/Teleport.lua
 --
---Menu teleport case -10. Lua hanya membangun menu; perpindahan map
---diserahkan ke MenuController.Menu_DaDichChuyen10 (Java), jadi cek blokir item,
---cek akun aktif, dan koordinat tetap satu sumber di Java.
+--Filename: Teleport.lua
+--
+--Created Date: Friday, October 2nd 2026, 10:55:27 pm
+--
+--Author: VIBE
+--
 --]]
-local Java = require "core.JavaClass"
-local Menu       = require "modules.menu.Menu"
-local MenuHelper = require "modules.menu.MenuHelper"
-local Service    = require("core.JavaClass").Service
 
--- Urutan HARUS sama dengan switch(index) di Menu_DaDichChuyen10 (index mulai dari 0)
+
+
+local Menu         = require "modules.menu.Menu"
+local MenuHelper   = require "modules.menu.MenuHelper"
+local Service      = require("core.JavaClass").Service
+
 local DESTINATIONS = {
     "Desa as Putih",
     "Kota Harta Karun",
@@ -29,24 +31,25 @@ local DESTINATIONS = {
     "Gua Kelelawar",
 }
 
-local function buildMenu(npcId)
+local function buildMenu(session, npcId)
     local entries = {}
 
-    for i, name in ipairs(DESTINATIONS) do
-        entries[#entries + 1] = {
+    for index, name in ipairs(DESTINATIONS) do
+        table.insert(entries, {
             name = name,
-            action = function(session)
-                Java.callStatic("core.MenuController", "Menu_DaDichChuyen10", session, i - 1)
-            end,
-        }
+            action = function()
+                Java.callStatic("core.MenuController", "Menu_DaDichChuyen10", session, index - 1)
+            end
+        })
     end
 
     return MenuHelper.build(Menu, "Teleport", npcId, entries)
 end
 
+
 return {
     onTalk = function(session, npcId)
-        local menu = buildMenu(npcId)
+        local menu = buildMenu(session, npcId)
 
         session.state:put("menu", menu)
         Service.openMenu(session, menu)

@@ -8,7 +8,7 @@
 --
 --]]
 
-local Input = require("class")("Input")
+local Input = class("Input")
 
 InputType = {
     TEXT = 0,

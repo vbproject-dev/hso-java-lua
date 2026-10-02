@@ -1,6 +1,7 @@
 {
     "Lua.diagnostics.globals": [
-        "Java"
+        "Java",
+        "ArrayList"
     ],
     "Lua.completion.autoRequire": false,
     "psi-header.config": {
