@@ -1,0 +1,38 @@
+{
+    "Lua.diagnostics.globals": [
+        "Java"
+    ],
+    "Lua.completion.autoRequire": false,
+    "psi-header.config": {
+        "forceToTop": true,
+        "blankLinesAfter": 3,
+        "author": "VIBE"
+    },
+    "psi-header.lang-config": [
+        {
+            "language": "lua",
+            "begin": "--[[",
+            "prefix": "--",
+            "end": "--]]",
+            "blankLinesAfter": 3
+        }
+    ],
+    "psi-header.templates": [
+        {
+            "language": "lua",
+            "template": [
+                "",
+                "Filename: <<filename>>",
+                "",
+                "Created Date: <<filecreated('dddd, MMMM Do YYYY, h:mm:ss a')>>",
+                "",
+                "Author: <<author>>",
+                ""
+            ]
+        }
+    ],
+    "psi-header.changes-tracking": {
+        "isActive": true,
+        "autoHeader": "autoSave"
+    }
+}

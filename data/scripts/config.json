@@ -1,0 +1,12 @@
+{
+    "database": {
+        "host": "127.0.0.1",
+        "user": "vb",
+        "password": "kmzway87aa",
+        "name": "prabowo",
+        "port": 3307
+    },
+    "web": {
+        "port": 8081
+    }
+}
