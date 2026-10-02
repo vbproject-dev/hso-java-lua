@@ -102,8 +102,6 @@ public class Session implements Runnable {
     public int topnap;
     public long coin;
     public int version;
-    private static final int MAX_VERSION = 402;
-    private static final int MIN_VERSION = 300;
 
     // --- MEMBERSHIP ---
     public byte membership_type = 0; // 0=None, 1=7Day, 2=30Day
@@ -519,22 +517,13 @@ public class Session implements Runnable {
         m.reader().readUTF(); // stringPackageName
 
         if (ver.isEmpty()) {
-            version = 300;
+            version = 309;
         } else {
-            try {
-                version = Integer.parseInt(ver.replace(".", "").trim());
-            } catch (NumberFormatException e) {
-                loginFail("Versi client tidak valid.");
-                return;
-            }
+            version = Integer.parseInt(ver.replace(".", ""));
         }
-        if (version > MAX_VERSION) {
-            loginFail("Client tidak didukung server ini.\nGunakan client resmi dari server.");
-            return;
-        }
+        int MIN_VERSION = 309;
         if (version < MIN_VERSION) {
-            loginFail(
-                    "Silakan update ke versi terbaru.\nSilakan kunjungi http://ksatria.vbpixel.com untuk mendownload patch terbaru.");
+            loginFail("Silakan update ke versi terbaru.\nSilakan kunjungi http://ksatria.vbpixel.com untuk mendownload patch terbaru.");
             return;
         }
 
