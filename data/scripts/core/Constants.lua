@@ -69,15 +69,28 @@ _G.insertTable  = function(tableName, data)
     return result
 end
 
-_G.try          = function(func)
-    local status, err = xpcall(func, debug.traceback)
+_G.try          = function(func, ...)
+    local success, err = xpcall(func, debug.traceback, ...)
 
-    if not status then
-        log(tostring(err))
+    if not success then
+        local lines = {}
+        local traceback = tostring(err)
+
+        for line in traceback:gmatch("[^\n]+") do
+            if not line:match("^stack traceback:$")
+                and not line:match("^%s*%[C%]:")
+                and not line:match("^%s*%(%.%.%.tail calls%.%.%.%)")
+                and not line:match("base%.xpcall")
+                and not line:match("base%.try") then
+                table.insert(lines, line)
+            end
+        end
+
+        log("[LUA ERROR]\n%s", table.concat(lines, "\n"))
         return false
     end
 
-    return true
+    return err
 end
 
 _G.CLASS        = JavaClass

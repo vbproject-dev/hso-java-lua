@@ -26,7 +26,7 @@ local Main                = {}
 DEBUG                     = true
 
 local MYSQL_ELAPSED       = 0
-local MYSQL_PING_INTERVAL = 120
+local MYSQL_PING_INTERVAL = 300
 
 function Main.onLoad()
     -- Setup MYSQL
@@ -61,11 +61,11 @@ function Main.onLoad()
 end
 
 function Main.onUpdate(dt)
-    MYSQL_ELAPSED = (MYSQL_ELAPSED + dt) / 1000
+    MYSQL_ELAPSED = (MYSQL_ELAPSED + dt)
 
     if MYSQL_ELAPSED >= MYSQL_PING_INTERVAL then
         MySQL.instance():ping()
-        MYSQL_ELAPSED = MYSQL_ELAPSED - MYSQL_PING_INTERVAL
+        MYSQL_ELAPSED = 0
         log("MYSQL PING")
     end
 end

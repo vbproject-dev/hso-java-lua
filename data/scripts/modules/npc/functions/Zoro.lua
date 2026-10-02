@@ -29,12 +29,6 @@ local function createMenu(session, npcId)
                                     Java.callStatic("core.MenuController", "Menu_Clan_Manager", session, 1)
                                 end,
                             },
-                            {
-                                name = "Bubarkan Guild",
-                                action = function()
-                                    Java.callStatic("core.MenuController", "Menu_Clan_Manager", session, 2)
-                                end,
-                            },
 
                             {
                                 name = "Transfer Pemimpin",
@@ -42,23 +36,28 @@ local function createMenu(session, npcId)
                                     Java.callStatic("core.MenuController", "Menu_Clan_Manager", session, 3)
                                 end,
                             },
-
-
+                            {
+                                name = "Icon Guild",
+                                action = function()
+                                    Service.openUI(session, 29)
+                                end,
+                            },
+                            {
+                                name = "Shop Guild",
+                                action = function()
+                                    Service.openUI(session, 30)
+                                end,
+                            },
+                            {
+                                name = "Bubarkan Guild",
+                                action = function()
+                                    Java.callStatic("core.MenuController", "Menu_Clan_Manager", session, 2)
+                                end,
+                            },
                         }
                     },
 
-                    {
-                        name = "Shop Icon",
-                        action = function()
-                            Service.openUI(session, 29)
-                        end,
-                    },
-                    {
-                        name = "Shop Guild",
-                        action = function()
-                            Service.openUI(session, 30)
-                        end,
-                    },
+
                     {
                         name = "Buat Jubah",
                         children = {
@@ -89,6 +88,7 @@ local function createMenu(session, npcId)
 
                         }
                     },
+
                     {
                         name = "Buat Gelar",
                         children = {
@@ -146,7 +146,7 @@ local function createMenu(session, npcId)
 
                                 if session.p:getGold() < value then
                                     Service.notice(session,
-                                        string.format("Gold kurang kamu kurang dari %d", value))
+                                        string.format("Gold kamu kurang dari %d", value))
                                     return
                                 end
 
@@ -179,7 +179,7 @@ local function createMenu(session, npcId)
 
                                 if session.p:getGem() < value then
                                     Service.notice(session,
-                                        string.format("Permata kurang kamu kurang dari %d", value))
+                                        string.format("Permata kamu kurang dari %d", value))
                                     return
                                 end
 

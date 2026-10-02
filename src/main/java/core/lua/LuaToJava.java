@@ -26,7 +26,6 @@ public final class LuaToJava {
 
             return target.newInstance(converted);
         } catch (Throwable e) {
-            e.printStackTrace();
             throw new RuntimeException(
                     "LuaToJava.construct failed: " + className,
                     e

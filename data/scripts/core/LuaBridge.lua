@@ -19,101 +19,101 @@ function LuaBridge.onMessage(session, msg)
     local handler = HandlerRegistry.get(msg.cmd)
 
     if not handler then
-        log("[Network] Uhandled Command %s from %s", Cmd.getName(msg.cmd), session.ip)
+        log("[Network] Unhandled Command %s from %s", Cmd.getName(msg.cmd), session.ip)
         return false
     end
 
-    local success, err = xpcall(handler, debug.traceback, session, msg)
-
-    if not success then
-        log("[Network] Handler error\n  Command: %s\n Error:\n%s", Cmd.getName(msg.cmd), err)
-        return false
-    end
-
-
-    return true
+    return try(function()
+        return handler(session, msg)
+    end)
 end
 
 function LuaBridge.onTalk(session, npcId)
-    local script = NpcRegistry.get(npcId)
+    return try(function()
+        local script = NpcRegistry.get(npcId)
 
-    if not script then
-        return false
-    end
+        if not script then
+            return false
+        end
 
-    return script.onTalk(session, npcId)
+        return script.onTalk(session, npcId)
+    end)
 end
 
 function LuaBridge.onInput(session, msg)
-    local input = session.state:get("input")
+    return try(function()
+        local input = session.state:get("input")
 
-    if not input then
-        return false
-    end
-
-    local reader = msg:copyReader()
-
-    local npcId = reader:readShort()
-    local menuId = reader:readShort()
-    local size = reader:readByte()
-
-    if input.npcId ~= npcId or size ~= #input.fields then
-        session.state:remove("input")
-        return false
-    end
-
-    local values = {}
-
-    for _, field in ipairs(input.fields) do
-        local value = reader:readUTF()
-
-        if field.type == InputType.NUMERIC then
-            value = tonumber(value)
-
-            if not value then
-                session.state:remove("input")
-                return false
-            end
+        if not input then
+            return false
         end
 
-        table.insert(values, value)
-    end
+        local reader = msg:copyReader()
 
-    session.state:remove("input")
-    input.action(session, values)
+        local npcId = reader:readShort()
+        local menuId = reader:readShort()
+        local size = reader:readByte()
 
-    return true
+        if input.npcId ~= npcId or size ~= #input.fields then
+            session.state:remove("input")
+            return false
+        end
+
+        local values = {}
+
+        for _, field in ipairs(input.fields) do
+            local value = reader:readUTF()
+
+            if field.type == InputType.NUMERIC then
+                value = tonumber(value)
+
+                if not value then
+                    session.state:remove("input")
+                    return false
+                end
+            end
+
+            table.insert(values, value)
+        end
+
+        session.state:remove("input")
+        input.action(session, values)
+
+        return true
+    end)
 end
 
 function LuaBridge.onSelectMenu(session, npcId, menuId, index)
-    local menu = session.state:get("menu")
+    return try(function()
+        local menu = session.state:get("menu")
 
-    if not menu then
-        return false
-    end
+        if not menu then
+            return false
+        end
 
-    if menu.npcId ~= npcId then
+        if menu.npcId ~= npcId then
+            session.state:remove("menu")
+            return false
+        end
+
+
+        local selected = menu:get(index)
+
+        if not selected then
+            return false
+        end
+
+        if selected:size() > 0 then
+            Service.openMenu(session, selected)
+            session.state:put("menu", selected)
+            return true
+        end
+
         session.state:remove("menu")
-        return false
-    end
+        selected:perform(session)
 
-
-    local selected = menu:get(index)
-
-    if not selected then
-        return false
-    end
-
-    if selected:size() > 0 then
-        Service.openMenu(session, selected)
-        session.state:put("menu", selected)
         return true
-    end
-
-    session.state:remove("menu")
-    selected:perform(session)
-
-    return true
+    end)
 end
 
 return LuaBridge

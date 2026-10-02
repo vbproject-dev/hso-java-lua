@@ -18,7 +18,7 @@ return {
             {
                 name = "Black Market",
                 action = function()
-
+                    Java.callStatic("core.Server", "test")
                 end
             },
         })
