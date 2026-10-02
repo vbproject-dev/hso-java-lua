@@ -8,13 +8,14 @@
 --
 --]]
 
+local Menu = require "modules.menu.Menu"
 local MenuHelper = {}
 
 function MenuHelper.when(condition, entries)
     return condition and entries or {}
 end
 
-function MenuHelper.build(Menu, name, npcId, entries)
+function MenuHelper.build(name, npcId, entries)
     local menu = Menu.new(name, nil, npcId)
     MenuHelper.add(menu, entries)
     return menu

@@ -43,7 +43,7 @@ local function buildMenu(session, npcId)
         })
     end
 
-    return MenuHelper.build(Menu, "Teleport", npcId, entries)
+    return MenuHelper.build("Teleport", npcId, entries)
 end
 
 

@@ -6,7 +6,6 @@
 
 
 local Service    = require("core.JavaClass").Service
-local Menu       = require("modules.menu.Menu")
 local MenuHelper = require("modules.menu.MenuHelper")
 local Input      = require("modules.menu.Input")
 
@@ -17,7 +16,7 @@ local function createMenu(session, npcId)
     local clan = session.p.myclan
 
     local hasGuild = clan ~= nil
-    return MenuHelper.build(Menu, "Zoro", npcId, {
+    return MenuHelper.build("Zoro", npcId, {
         MenuHelper.when(hasGuild, {
             {
                 MenuHelper.when(hasGuild and clan:isLeader(session.p.name), {
