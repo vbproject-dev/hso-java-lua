@@ -7,3 +7,5 @@
 !data/
 !data/scripts/
 !data/scripts/**
+!HSOPlugin.dll
+!libHSOPlugin.so

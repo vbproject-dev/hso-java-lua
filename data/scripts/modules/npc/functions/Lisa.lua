@@ -1,6 +1,7 @@
 local Menu = require "modules.menu.Menu"
 local Service = require("core.JavaClass").Service
 local MenuHelper = require("modules.menu.MenuHelper")
+local Input = require("modules.menu.Input")
 
 --[[
 --
@@ -16,48 +17,10 @@ return {
     onTalk = function(session, npcId)
         local menu = MenuHelper.build(Menu, "Zoro", npcId, {
             {
-                name = "Test",
+                name = "Black Market",
                 action = function()
-                    Service.notice(session, "OI")
                 end
             },
-
-            {
-                name = "Submenu1",
-                children = {
-                    {
-                        name = "Child 1",
-                        action = function()
-
-                        end
-                    },
-                    {
-                        name = "Child 2",
-                        action = function()
-
-                        end
-                    }
-                }
-            },
-
-            {
-                name = "Submenu2",
-                children = {
-                    {
-                        name = "Child 1",
-                        action = function()
-
-                        end
-                    },
-                    {
-                        name = "Child 2",
-                        action = function()
-
-                        end
-                    }
-                }
-            },
-
         })
 
         session.state:put("menu", menu)
