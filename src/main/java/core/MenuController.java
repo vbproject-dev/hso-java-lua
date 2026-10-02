@@ -525,8 +525,8 @@ public class MenuController {
         byte menuId = m.reader().readByte();
         byte index = m.reader().readByte();
 
-        boolean isHandledByLua = JavaToLua.call("core.LuaBridge.onSelectMenu", new Object[]{conn, npcId, menuId, index});
-        if (isHandledByLua) {
+        boolean handled = JavaToLua.call("core.LuaBridge.onSelectMenu", new Object[]{conn, npcId, menuId, index});
+        if (Boolean.TRUE.equals(handled)) {
             return;
         }
 
