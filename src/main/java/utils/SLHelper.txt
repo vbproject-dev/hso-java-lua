@@ -1,0 +1,302 @@
+# SQLHelper - Fixed Resource Management Guide
+
+## 🔴 Critical Changes - Resource Leak Fixed!
+
+All `SelectBuilder` query methods now use the **callback pattern** from the updated `SQL` class. This guarantees proper resource cleanup and prevents connection pool exhaustion.
+
+---
+
+## What Was Fixed
+
+### ❌ Before (Resource Leak)
+```java
+// Connection, PreparedStatement, and ResultSet never closed!
+ResultSet rs = SQLHelper.selectFrom("users").where("id", userId).execute();
+while (rs.next()) {
+    // process
+}
+// Connection still open - LEAK!
+```
+
+### ✅ After (Safe)
+```java
+// All resources automatically closed
+User user = SQLHelper.selectFrom("users")
+    .where("id", userId)
+    .firstAs(rs -> new User(
+        rs.getInt("id"),
+        rs.getString("name")
+    ));
+```
+
+---
+
+## Fixed Methods in SelectBuilder
+
+### 1. **value()** - Get Single Value
+```java
+// ✅ Safe - auto closes connection
+String username = (String) SQLHelper.selectFrom("users")
+    .where("id", 123)
+    .value("name");
+```
+
+### 2. **count()** - Count Records
+```java
+// ✅ Safe - auto closes connection
+int total = SQLHelper.selectFrom("users")
+    .where("status", "active")
+    .count();
+```
+
+### 3. **Aggregates** - sum(), avg(), max(), min()
+```java
+// ✅ Safe - auto closes connection
+double totalSales = SQLHelper.selectFrom("orders")
+    .where("status", "completed")
+    .sum("amount");
+```
+
+### 4. **exists()** - Check Existence
+```java
+// ✅ Safe - auto closes connection
+boolean userExists = SQLHelper.selectFrom("users")
+    .where("email", "test@example.com")
+    .exists();
+```
+
+### 5. **get()** - Get List of Objects
+```java
+// ✅ Safe - auto closes connection
+List<User> users = SQLHelper.selectFrom("users")
+    .where("status", "active")
+    .orderByDesc("created_at")
+    .limit(10)
+    .get(rs -> new User(
+        rs.getInt("id"),
+        rs.getString("name"),
+        rs.getString("email")
+    ));
+```
+
+### 6. **firstAs()** - Get Single Object
+```java
+// ✅ Safe - auto closes connection
+User user = SQLHelper.selectFrom("users")
+    .where("id", 123)
+    .firstAs(rs -> new User(
+        rs.getInt("id"),
+        rs.getString("name"),
+        rs.getString("email")
+    ));
+```
+
+### 7. **getJSON()** - Get JSONArray
+```java
+// ✅ Safe - auto closes connection
+JSONArray users = SQLHelper.selectFrom("users")
+    .where("status", "active")
+    .getJSON();
+```
+
+### 8. **firstJSON()** - Get Single JSONObject
+```java
+// ✅ Safe - auto closes connection
+JSONObject user = SQLHelper.selectFrom("users")
+    .where("id", 123)
+    .firstJSON();
+```
+
+### 9. **getJSONObject() / getJSONArray()** - Get JSON Column
+```java
+// ✅ Safe - auto closes connection
+JSONObject settings = SQLHelper.selectFrom("users")
+    .where("id", 123)
+    .getJSONObject("settings");
+
+JSONArray tags = SQLHelper.selectFrom("posts")
+    .where("id", 456)
+    .getJSONArray("tags");
+```
+
+---
+
+## Fixed JSON Modifiers
+
+### JSONModifier - FIXED
+```java
+// ✅ Safe - getJSONObject() now uses SQL.selectOne()
+boolean success = SQLHelper.modifyJSON("users", "settings", "id = ?", 123)
+    .set("theme", "dark")
+    .setNested("notifications.email", true);
+```
+
+**What was fixed:**
+```java
+// OLD (Resource Leak):
+try (ResultSet rs = SQL.gI().select(...)) {
+    String jsonStr = rs.getString(jsonColumn);
+    return parseJSON(jsonStr);
+}
+
+// NEW (Safe):
+String sql = "SELECT " + jsonColumn + " FROM " + table + " WHERE " + whereClause;
+String jsonStr = SQL.gI().selectOne(sql, rs -> rs.getString(jsonColumn), whereParams);
+return parseJSON(jsonStr);
+```
+
+### JSONArrayModifier - FIXED
+```java
+// ✅ Safe - getJSONArray() now uses SQL.selectOne()
+boolean success = SQLHelper.modifyJSONArray("posts", "tags", "id = ?", 789)
+    .push("javascript")
+    .push("tutorial");
+```
+
+---
+
+## Complete Usage Examples
+
+### Example 1: User Management
+```java
+// Insert user
+long userId = SQLHelper.insert("users")
+    .value("name", "John Doe")
+    .value("email", "john@example.com")
+    .value("status", "active")
+    .execute();
+
+// Update user - ✅ No resource leak (doesn't use select)
+boolean updated = SQLHelper.update("users")
+    .set("name", "Jane Doe")
+    .set("last_login", System.currentTimeMillis())
+    .where("id", userId)
+    .execute();
+
+// Get user - ✅ Safe with callback pattern
+User user = SQLHelper.selectFrom("users")
+    .where("id", userId)
+    .firstAs(rs -> new User(
+        rs.getInt("id"),
+        rs.getString("name"),
+        rs.getString("email"),
+        rs.getString("status")
+    ));
+
+// Count active users - ✅ Safe
+int activeCount = SQLHelper.selectFrom("users")
+    .where("status", "active")
+    .count();
+
+// Delete user - ✅ No resource leak (doesn't use select)
+boolean deleted = SQLHelper.delete("users")
+    .where("id", userId)
+    .execute();
+```
+
+### Example 2: Complex Queries
+```java
+// ✅ All safe with callback pattern
+List<Order> orders = SQLHelper.selectFrom("orders")
+    .join("users", "users.id = orders.user_id")
+    .where("orders.status", "completed")
+    .whereBetween("orders.created_at", startDate, endDate)
+    .orderByDesc("orders.created_at")
+    .limit(50)
+    .get(rs -> new Order(
+        rs.getInt("id"),
+        rs.getInt("user_id"),
+        rs.getDouble("amount"),
+        rs.getString("status")
+    ));
+
+// Get with aggregation - ✅ Safe
+double totalRevenue = SQLHelper.selectFrom("orders")
+    .where("status", "completed")
+    .whereYear("created_at", 2024)
+    .sum("amount");
+```
+
+### Example 3: JSON Operations
+```java
+// Modify JSON object - ✅ Safe
+SQLHelper.modifyJSON("users", "settings", "id = ?", userId)
+    .set("theme", "dark")
+    .set("language", "en")
+    .setNested("notifications.email", true)
+    .setNested("notifications.push", false)
+    .increment("login_count", 1);
+
+// Modify JSON array - ✅ Safe
+SQLHelper.modifyJSONArray("posts", "tags", "id = ?", postId)
+    .push("programming")
+    .push("tutorial")
+    .removeWhere("name", "old-tag")
+    .sortBy("name", true);
+
+// Get JSON data - ✅ Safe
+JSONObject settings = SQLHelper.selectFrom("users")
+    .where("id", userId)
+    .getJSONObject("settings");
+```
+
+---
+
+## Key Benefits
+
+1. ✅ **No More Resource Leaks** - All connections properly closed
+2. ✅ **Type-Safe Results** - Generic return types
+3. ✅ **Clean API** - Fluent builder pattern maintained
+4. ✅ **Automatic Error Handling** - try-with-resources in SQL class
+5. ✅ **Better Performance** - No connection pool exhaustion
+
+---
+
+## Migration Guide
+
+If you have existing code using the old pattern:
+
+### Old Code (Resource Leak)
+```java
+ResultSet rs = SQLHelper.selectFrom("users").where("id", 123).execute();
+if (rs.next()) {
+    String name = rs.getString("name");
+    String email = rs.getString("email");
+}
+// rs never closed - LEAK!
+```
+
+### New Code (Safe)
+```java
+User user = SQLHelper.selectFrom("users")
+    .where("id", 123)
+    .firstAs(rs -> new User(
+        rs.getInt("id"),
+        rs.getString("name"),
+        rs.getString("email")
+    ));
+```
+
+---
+
+## Important Notes
+
+1. **Never try to return ResultSet** - It's no longer possible, which prevents leaks
+2. **Use mapper functions** - Process data inside the callback
+3. **All resources auto-close** - Even on exceptions
+4. **Null safety** - Methods return null or empty collections if no data found
+
+---
+
+## Files to Update
+
+Replace the following files in your project:
+
+1. **SQL.java** - Updated with callback pattern
+2. **SQLHelper.java** - All 4 parts combined into one file:
+   - Part 1: Base classes and builders
+   - Part 2: SelectBuilder with fixed methods
+   - Part 3: JSON helpers and JSONModifier
+   - Part 4: JSONArrayModifier
+
+All database operations are now safe! 🎉

@@ -1,0 +1,13 @@
+.idea/
+target/
+log/
+logs/
+log_server/
+
+HSO.jar
+HSOPlugin.dll
+libHSOPlugin.so
+
+data/
+hso.conf
+.luarc.json
