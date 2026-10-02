@@ -1,8 +1,3 @@
-local Menu = require "modules.menu.Menu"
-local Service = require("core.JavaClass").Service
-local MenuHelper = require("modules.menu.MenuHelper")
-local Input = require("modules.menu.Input")
-
 --[[
 --
 --Filename: Lisa.lua
@@ -13,13 +8,17 @@ local Input = require("modules.menu.Input")
 --
 --]]
 
+local Service = require("core.JavaClass").Service
+local MenuHelper = require("modules.menu.MenuHelper")
+
+
 return {
     onTalk = function(session, npcId)
-        local menu = MenuHelper.build(Menu, "Zoro", npcId, {
+        local menu = MenuHelper.build("Zoro", npcId, {
             {
                 name = "Black Market",
                 action = function()
-                    Java.callStatic("core.MenuController", "Menu_DaDichChuyen10", session, 1)
+
                 end
             },
         })
