@@ -1,10 +1,12 @@
 local GameData = {
     npcData = ArrayList.new(),
+    itemLelang = ArrayList.new(),
 }
 
 function GameData.loadData()
     local datasets = {
-        { table = "npc", field = "npcData" },
+        { table = "npc",         field = "npcData" },
+        { table = "item_lelang", field = "itemLelang" }
     }
 
     for _, dataset in ipairs(datasets) do
@@ -22,6 +24,12 @@ function GameData.loadData()
 end
 
 function GameData.getNpc(id)
+    return GameData.npcData:findFirst(function(npc)
+        return npc.id == id
+    end)
+end
+
+function GameData.getItemLelang(id)
     return GameData.npcData:findFirst(function(npc)
         return npc.id == id
     end)
