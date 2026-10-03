@@ -10,6 +10,7 @@
 
 local Service = require("core.JavaClass").Service
 local MenuHelper = require("modules.menu.MenuHelper")
+local AuctionManager = require("modules.features.auction.AuctionManager")
 
 
 return {
@@ -18,7 +19,7 @@ return {
             {
                 name = "Black Market",
                 action = function()
-                    Java.callStatic("core.Server", "test")
+                    AuctionManager.openAuction(session)
                 end
             },
         })

@@ -12,6 +12,7 @@ local Service        = require("core.JavaClass").Service
 local Cmd            = require("core.Cmd")
 local MenuHelper     = require("modules.menu.MenuHelper")
 local AuctionManager = require("modules.features.auction.AuctionManager")
+local Input          = require("modules.menu.Input")
 
 
 
@@ -41,11 +42,33 @@ local function createOtherMenu(session, itemIndex, item)
         {
             name = "Lelang",
             action = function()
-                if AuctionManager.registerItem(session, item, 2000) then
-                    session.p.item:remove(3, itemIndex, 1)
-                    session.p.item:updateBag()
-                    Service.notice(session, "Item berhasil di lelangkan")
+                if not AuctionManager.hasSlot(session) then
+                    Service.notice(session, "Slot lelang sudah penuh")
+                    return
                 end
+
+                local input = Input.build({
+                    npcId = -1,
+                    title = "Pasang Harga",
+                    fields = {
+                        { name = "Jumlah", type = InputType.NUMERIC },
+                    },
+                    action = function(session, values)
+                        local value = values[1]
+                        if not value then
+                            Service.notice(session, "Input tidak valid")
+                            return
+                        end
+
+                        if AuctionManager.registerItem(session, item, value) then
+                            session.p.item:remove(3, itemIndex, 1)
+                            session.p.item:updateBag()
+                            Service.notice(session, "Item berhasil di lelangkan")
+                        end
+                    end,
+                })
+                session.state:put("input", input)
+                Service.openInput(session, input)
             end
         }
 

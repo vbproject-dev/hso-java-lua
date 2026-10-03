@@ -12,6 +12,7 @@ require "core.Class"
 require "core.Constants"
 require "core.Logger"
 require "core.LuaBridge"
+local AuctionManager = require "modules.features.auction.AuctionManager"
 
 
 local MySQL           = require "core.MySQL"
@@ -44,6 +45,9 @@ function Main.onLoad()
         log("[GameData] Failed to load game data")
         return
     end
+
+    -- AuctionManager
+    AuctionManager.load()
 
     -- Register Npc Scripts
     GameData.npcData:forEach(function(npc)

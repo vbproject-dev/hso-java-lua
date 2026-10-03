@@ -76,9 +76,7 @@ public class Item3 {
 
     public void updateName() {
         name = ItemTemplate3.item.get(id).getName();
-        if (islock) {
-            name += " [Terkunci]";
-        }
+
         if (tierStar > 0) {
             name += " [Level " + tierStar + "]";
         }

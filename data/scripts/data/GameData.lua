@@ -1,12 +1,12 @@
 local GameData = {
     npcData = ArrayList.new(),
-    auction = ArrayList.new(),
+    auctions = ArrayList.new(),
 }
 
 function GameData.loadData()
     local datasets = {
         { table = "npc",     field = "npcData" },
-        { table = "auction", field = "auction" }
+        { table = "auction", field = "auctions" }
     }
 
     for _, dataset in ipairs(datasets) do
@@ -26,12 +26,6 @@ end
 function GameData.getNpc(id)
     return GameData.npcData:findFirst(function(npc)
         return npc.id == id
-    end)
-end
-
-function GameData.getAuctionByPlayerId(id)
-    return GameData.auction:findFirst(function(item)
-        return item.player_id == id
     end)
 end
 

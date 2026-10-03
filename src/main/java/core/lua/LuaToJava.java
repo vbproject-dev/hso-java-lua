@@ -266,7 +266,23 @@ public final class LuaToJava {
 
         while (current != null) {
             try {
-                return current.getDeclaredField(name);
+                Field field = current.getDeclaredField(name);
+
+                if (Modifier.isPublic(field.getModifiers()))
+                    return field;
+
+                String className = current.getName();
+
+                if (className.startsWith("java.")
+                        || className.startsWith("javax.")
+                        || className.startsWith("jdk.")
+                        || className.startsWith("sun.")) {
+                    current = current.getSuperclass();
+                    continue;
+                }
+
+                return field;
+
             } catch (NoSuchFieldException ignored) {
                 current = current.getSuperclass();
             }
