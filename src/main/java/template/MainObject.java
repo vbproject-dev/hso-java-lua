@@ -3,6 +3,7 @@ package template;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import client.Pet;
@@ -54,11 +55,18 @@ public class MainObject {
 
     //eff mount
 
-    private static final int MOUNT_ATTACK_EFF_GRAPHIC_ID = 80;
-
     private static final long MOUNT_ATTACK_EFF_INTERVAL_MS = 1 * 10_000L;
 
-    private static final Set<Short> MOUNT_ATTACK_EFF_ALLOWED_MOUNT_IDS = Set.of((short) 5285);
+    private static final boolean MOUNT_ATTACK_EFF_DEBUG = true;
+
+    private static final Map<Short, Integer> MOUNT_ATTACK_EFF_MAP = Map.ofEntries(
+            Map.entry((short) 5285, 80),
+            Map.entry((short) 5512, 149), 
+            Map.entry((short) 5513, 150), 
+            Map.entry((short) 5514, 151),  
+            Map.entry((short) 5515, 152),
+            Map.entry((short) 5238, 154)
+    );
     // </editor-fold>
 
 
@@ -1062,24 +1070,22 @@ public class MainObject {
         }
         // </editor-fold> Eff item.wear[22]
 
-        // <editor-fold defaultstate="collapsed" desc="Eff mount saat kita nyerang musuh/mob ...">
-        // Nyalain efek part_char type 111 (jalur "auto", nempel ke entity —
-        // lihat MapItemEffect.spawnAuto) ke PLAYER (ikut mount, karena mount
-        // dirender jadi satu sama entity player), dipicu tiap kali player yang
-        // lagi naik mount berhasil nyerang musuh ATAU mob. Dibatasi cooldown
-        // per-player MOUNT_ATTACK_EFF_INTERVAL_MS supaya nggak spam tiap hit,
-        // cukup muncul sekali tiap interval selama player terus menyerang.
-        // (Sama polanya dengan mount type_use_mount==10 di source lama yang
-        // manggil Service.send_eff_auto(p.conn, [p], 80).)
         if (dame > 0 && ObjAtk.isPlayer()) {
             try {
                 Player pMount = (Player) ObjAtk;
                 Item3 wornMount = pMount.item != null ? pMount.item.wear[21] : null;
-                if (wornMount != null && MOUNT_ATTACK_EFF_ALLOWED_MOUNT_IDS.contains(wornMount.id)) {
+                Integer mountEffId = wornMount != null ? MOUNT_ATTACK_EFF_MAP.get(wornMount.id) : null;
+                if (MOUNT_ATTACK_EFF_DEBUG) {
+                    System.out.println("[MountEff] wear21=" + (wornMount != null ? wornMount.id : "null")
+                            + " mountType=" + (pMount.mount != null ? pMount.mount.getType() : "null")
+                            + " mountPart=" + (pMount.mount != null ? pMount.mount.getPart() : "null")
+                            + " effId=" + mountEffId);
+                }
+                if (mountEffId != null) {
                     long now = System.currentTimeMillis();
                     if (now >= pMount.mountAttackEff_nextAllowed) {
                         pMount.mountAttackEff_nextAllowed = now + MOUNT_ATTACK_EFF_INTERVAL_MS;
-                        MapItemEffect.spawnAuto(gameMap, pMount, MOUNT_ATTACK_EFF_GRAPHIC_ID, pMount);
+                        MapItemEffect.spawnAuto(gameMap, pMount, mountEffId, pMount);
                     }
                 }
             } catch (Exception ignored) {
