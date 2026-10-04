@@ -56,6 +56,7 @@ function Mail:toDatabase()
         sender = self.sender,
         message = self.message,
         gold = self.gold,
+        gem = self.gem,
         items = JSON.fromTable(self.items),
         type = self.type,
         status = self.status,

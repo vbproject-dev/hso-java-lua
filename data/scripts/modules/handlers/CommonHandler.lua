@@ -36,7 +36,7 @@ local function createOtherMenu(session, itemIndex, item)
                 item.islock = false
                 session.p.updateGem(-20000)
                 session.p.item:updateBag()
-                Service.notice(session, "Item unlocked cost 20.000 permata")
+                Service.notice(session, "Item unlocked cost 20000 permata")
             end
         }),
 
@@ -52,7 +52,7 @@ local function createOtherMenu(session, itemIndex, item)
                     npcId = -1,
                     title = "Pasang Harga",
                     fields = {
-                        { name = "Jumlah", type = InputType.NUMERIC },
+                        { name = "Permata", type = InputType.NUMERIC },
                     },
                     action = function(session, values)
                         local value = values[1]

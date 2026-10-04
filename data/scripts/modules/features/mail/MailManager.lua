@@ -102,11 +102,11 @@ function MailManager.claim(session, mails)
     end)
 
     if gold > 0 then
-        session.p.updateGem(gold)
+        session.p:updateGem(gold)
     end
 
     if gem > 0 then
-        session.p.updateGem(gold)
+        session.p:updateGem(gem)
     end
 
     for _, item in ipairs(items) do

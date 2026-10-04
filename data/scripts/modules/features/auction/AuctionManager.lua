@@ -107,7 +107,7 @@ function AuctionManager.openAuction(session)
     items:forEach(function(auction)
         local item = auction.itemObject
         packet:writer():writeShort(auction.id)
-        packet:writer():writeUTF(item.name)
+        packet:writer():writeUTF(string.format("%s +%d", item.name, auction.itemInfo.tier))
         packet:writer():writeByte(item.clazz)
         packet:writer():writeByte(item.type)
         packet:writer():writeShort(item.icon)
@@ -117,7 +117,7 @@ function AuctionManager.openAuction(session)
         packet:writer():writeByte(item.op:size())
         item.op:forEach(function(opt)
             packet:writer():writeByte(opt:getId())
-            packet:writer():writeInt(opt:getParam(item.tier))
+            packet:writer():writeInt(opt:getParam(auction.itemInfo.tier))
         end)
         packet:writer():writeByte(1)
     end)
@@ -150,15 +150,18 @@ function AuctionManager.registerItem(session, item, price)
         }
     })
 
-    AuctionManager.auctionItems:add(itemData)
+
 
     -- Insert to auction table
-    local ok, err = insertTable("auction", itemData:toDatabase())
-    if not ok then
+    local id, err = insertTable("auction", itemData:toDatabase())
+    if not id then
         log("[AuctionManager] error: %s", err)
         return false
     end
 
+    itemData.id = id
+    AuctionManager.auctionItems:add(itemData)
+    log("Add item to black market" .. itemData.id)
     return true
 end
 
@@ -294,7 +297,7 @@ function AuctionManager.buy(session, auctionId)
 
     auction.status = STATUS.SOLD
 
-    local ok, err = deleteTable("auction", { id = auction.id })
+    local ok, err = deleteTable("auction", { id = auctionId })
 
     if not ok then
         log("[AuctionManager] Failed to delete auction %d: %s", auction.id, err)
