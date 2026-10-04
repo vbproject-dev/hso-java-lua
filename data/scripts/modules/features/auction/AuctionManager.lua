@@ -83,6 +83,12 @@ function AuctionManager.hasSlot(session)
     end)
 end
 
+function AuctionManager.hasItemOnSale(session)
+    return AuctionManager.auctionItems:filter(function(item)
+        return item.playerId == session.p.objectId and item.status == STATUS.ONSALE
+    end):size() > 0
+end
+
 function AuctionManager.openAuction(session)
     -- Only filter items that are on sale
     -- 0 = ON SALE
@@ -156,6 +162,93 @@ function AuctionManager.registerItem(session, item, price)
     return true
 end
 
+function AuctionManager.cancel(session, auctionId)
+    local auction = AuctionManager.auctionItems:findFirst(function(item)
+        return item.id == auctionId and item.playerId == session.p.objectId and item.status == STATUS.ONSALE
+    end)
+
+    if not auction then
+        Service.notice(session, "Item lelang tidak ditemukan")
+        return false
+    end
+
+    MailManager.send({
+        player_id = session.p.objectId,
+        sender = "Black Market",
+        message = string.format("Item lelang %s telah dibatalkan.", auction.itemName),
+        items = {
+            {
+                item_id = auction.itemId,
+                amount = 1,
+                name = auction.itemName,
+                category = auction.category,
+                tier = auction.itemInfo.tier,
+                tierStar = auction.itemInfo.tierStar,
+                options = auction.itemInfo.options
+            }
+        },
+        type = Mail.TYPE.AUCTION
+    })
+
+    auction.status = STATUS.CANCEL
+
+    local ok, err = deleteTable("auction", { id = auction.id })
+    if not ok then
+        log("[AuctionManager] Failed to delete auction %d: %s", auction.id, err)
+        return false
+    end
+
+    AuctionManager.auctionItems:remove(auction)
+
+    Service.notice(session, "Penjualan berhasil dibatalkan")
+    return true
+end
+
+function AuctionManager.cancelAll(session)
+    local auctions = AuctionManager.auctionItems:filter(function(item)
+        return item.playerId == session.p.objectId
+            and item.status == STATUS.ONSALE
+    end)
+
+    if auctions:size() == 0 then
+        Service.notice(session, "Tidak ada item lelang")
+        return false
+    end
+
+    auctions:forEach(function(auction)
+        MailManager.send({
+            player_id = session.p.objectId,
+            sender = "Black Market",
+            message = string.format("Item lelang %s telah dibatalkan.", auction.itemName),
+            items = {
+                {
+                    item_id = auction.itemId,
+                    amount = 1,
+                    name = auction.itemName,
+                    category = auction.category,
+                    tier = auction.itemInfo.tier,
+                    tierStar = auction.itemInfo.tierStar,
+                    options = auction.itemInfo.options
+                }
+            },
+            type = Mail.TYPE.AUCTION
+        })
+
+        auction.status = STATUS.CANCEL
+
+        local ok, err = deleteTable("auction", { id = auction.id })
+        if not ok then
+            log("[AuctionManager] Failed to delete auction %d: %s", auction.id, err)
+            return
+        end
+
+        AuctionManager.auctionItems:remove(auction)
+    end)
+
+    Service.notice(session, "Semua penjualan berhasil dibatalkan")
+    return true
+end
+
 function AuctionManager.buy(session, auctionId)
     local auction = AuctionManager.auctionItems:findFirst(function(item)
         return item.id == auctionId
@@ -184,7 +277,6 @@ function AuctionManager.buy(session, auctionId)
 
     -- Give item to buyer
 
-
     session.p.item:add_item_bag3(auction.itemObject)
     session.p.item:updateBag()
 
@@ -195,24 +287,17 @@ function AuctionManager.buy(session, auctionId)
     MailManager.send({
         player_id = auction.playerId,
         sender = "Black Market",
-        message = string.format(
-            "Item lelang %s telah terjual. harga: %d pajak: %d%% (-%d) diterima: %d",
-            auction.itemName,
-            price,
-            TAX,
-            tax,
-            received
-        ),
+        message = string.format("Item %s telah terjual.", auction.itemName),
         gem = received,
         type = Mail.TYPE.AUCTION
     })
 
     auction.status = STATUS.SOLD
 
-    local ok, err = updateTable("auction", { status = STATUS.SOLD }, { id = auction.id })
+    local ok, err = deleteTable("auction", { id = auction.id })
 
     if not ok then
-        log("[AuctionManager] Failed to update auction %d: %s", auction.id, err)
+        log("[AuctionManager] Failed to delete auction %d: %s", auction.id, err)
         return false
     end
 

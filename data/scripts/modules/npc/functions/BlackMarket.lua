@@ -27,6 +27,13 @@ return {
                 end
             },
 
+            MenuHelper.when(AuctionManager.hasItemOnSale(session), {
+                name = "Batalkan Penjualan",
+                action = function()
+                    AuctionManager.cancelAll(session)
+                end
+            }),
+
             {
                 name = "Mail",
                 action = function()
@@ -38,6 +45,23 @@ return {
 
 
                     MailManager.claim(session, mails)
+                end
+            },
+
+            {
+                name = "Informasi",
+                action = function()
+                    Service.notice(session,
+                        "Black Market\n" ..
+                        "Maksimal 10 item yang dapat dijual.\n" ..
+                        "Durasi penjualan adalah 7 hari.\n" ..
+                        "Pajak penjualan sebesar 10% dari harga item.\n" ..
+                        "Setelah item terjual, hasil penjualan dikirim melalui Mail.\n" ..
+                        "Hasil yang diterima adalah harga setelah dipotong pajak.\n" ..
+                        "Penjualan yang dibatalkan akan dikembalikan melalui Mail.\n" ..
+                        "Item yang tidak terjual hingga masa berlaku habis akan dikembalikan melalui Mail.\n" ..
+                        "Kamu tidak dapat membeli item milik sendiri."
+                    )
                 end
             },
 
