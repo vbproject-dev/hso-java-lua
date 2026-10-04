@@ -39,7 +39,7 @@ return {
                 action = function()
                     local mails = MailManager.get(session.p.objectId)
                     if mails:size() <= 0 then
-                        Service.notice(session, "Kamu tidak memiliki pesan")
+                        Service.notice(session, "Kamu tidak memiliki Mail")
                         return
                     end
 

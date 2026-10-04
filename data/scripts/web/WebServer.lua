@@ -21,11 +21,7 @@ function WebServer:ctor()
 end
 
 function WebServer:init()
-    local config = Config.load("data/scripts/config.json")
-    if not config then
-        return false
-    end
-
+    local cfg = Java.callStatic("core.Manager", "gI")
     self.server:setMaxBodySize(1000000000)
     self.server:setHandler({
         onGet = function(request)
@@ -45,7 +41,7 @@ function WebServer:init()
         end
     })
 
-    self.server:start(config.web.port)
+    self.server:start(cfg.web_port)
 
     return true
 end

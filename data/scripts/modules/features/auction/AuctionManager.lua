@@ -12,14 +12,19 @@ local Service     = require("core.JavaClass").Service
 local AuctionItem = require("modules.features.auction.AuctionItem")
 local Cmd         = require("core.Cmd")
 
+
 local MailManager = require("modules.features.mail.MailManager")
 local Mail        = require("modules.features.mail.Mail")
 
-local MAX_ITEM    = 10
+-- Configurations
+local MAX_ITEM    = 5
 local TAX         = 10
+local BLACKLIST   = {}
 
 
-local STATUS = {
+
+
+local STATUS         = {
     ONSALE = 0,
     SOLD = 1,
     EXPIRED = 2,
@@ -30,7 +35,7 @@ local AuctionManager = {
     auctionItems = ArrayList.new(),
 }
 
-function AuctionManager.load()
+function AuctionManager.load(cfg)
     -- Load AuctionItem
     local result, err = loadTable("auction")
     if result then
@@ -69,6 +74,24 @@ function AuctionManager.load()
     else
         log("[AuctionManager] error: %s", err)
     end
+
+    -- Overwrite Configurations
+    if cfg then
+        TAX = cfg.tax
+        MAX_ITEM = cfg.maxitem
+
+        for _, id in ipairs(cfg.blacklist or {}) do
+            BLACKLIST[id] = true
+        end
+    end
+end
+
+function AuctionManager.isAllowed(id)
+    if BLACKLIST[id] then
+        return false
+    end
+
+    return true
 end
 
 function AuctionManager.getItems(playerId)
@@ -80,7 +103,7 @@ end
 function AuctionManager.hasSlot(session)
     return AuctionManager.auctionItems:filter(function(item)
         return item.playerId == session.p.objectId and item.status == 0
-    end)
+    end):size() < MAX_ITEM
 end
 
 function AuctionManager.hasItemOnSale(session)
@@ -126,7 +149,7 @@ function AuctionManager.openAuction(session)
     session.state:put("auction", true)
 end
 
-function AuctionManager.registerItem(session, item, price)
+function AuctionManager.registerItem(session, item, price, quantity)
     local options = {}
     item.op:forEach(function(opt)
         table.insert(options, { id = opt.id, value = opt.param })
@@ -139,6 +162,7 @@ function AuctionManager.registerItem(session, item, price)
         item_name = item.name,
         item_category = 3,
         price = price,
+        quantity = quantity or 1,
         days = 7,
         status = 0,
         created_at = os.date("%Y-%m-%d %H:%M:%S"),
@@ -149,7 +173,6 @@ function AuctionManager.registerItem(session, item, price)
             options = options,
         }
     })
-
 
 
     -- Insert to auction table
@@ -182,7 +205,7 @@ function AuctionManager.cancel(session, auctionId)
         items = {
             {
                 item_id = auction.itemId,
-                amount = 1,
+                quantity = auction.quantity,
                 name = auction.itemName,
                 category = auction.category,
                 tier = auction.itemInfo.tier,
@@ -226,7 +249,7 @@ function AuctionManager.cancelAll(session)
             items = {
                 {
                     item_id = auction.itemId,
-                    amount = 1,
+                    quantity = auction.quantity,
                     name = auction.itemName,
                     category = auction.category,
                     tier = auction.itemInfo.tier,
@@ -253,19 +276,19 @@ function AuctionManager.cancelAll(session)
 end
 
 function AuctionManager.buy(session, auctionId)
-    local auction = AuctionManager.auctionItems:findFirst(function(item)
-        return item.id == auctionId
-            and item.status == STATUS.ONSALE
+    local auction = AuctionManager.auctionItems:findFirst(function(auction)
+        return auction.id == auctionId and auction.status == STATUS.ONSALE
     end)
+
 
     if not auction then
         Service.notice(session, "Item tidak ditemukan")
-        return false
+        return
     end
 
     if auction.playerId == session.p.objectId then
         Service.notice(session, "Kamu tidak dapat membeli item sendiri")
-        return false
+        return
     end
 
 
@@ -273,7 +296,7 @@ function AuctionManager.buy(session, auctionId)
 
     if session.p:getGem() < price then
         Service.notice(session, "Permata tidak cukup")
-        return false
+        return
     end
 
     session.p:updateGem(-price)
@@ -301,7 +324,7 @@ function AuctionManager.buy(session, auctionId)
 
     if not ok then
         log("[AuctionManager] Failed to delete auction %d: %s", auction.id, err)
-        return false
+        return
     end
 
     AuctionManager.auctionItems:remove(auction)
@@ -309,7 +332,6 @@ function AuctionManager.buy(session, auctionId)
     AuctionManager.openAuction(session)
 
     Service.notice(session, "Pembelian berhasil")
-    return true
 end
 
 return AuctionManager

@@ -73,6 +73,8 @@ public class Manager {
     public String mysql_pass;
     public int mysql_port;
 
+    public int web_port;
+
     public boolean isServerAdmin;
     public int event;
 
@@ -1247,12 +1249,13 @@ public class Manager {
         } else {
             this.debug = false;
         }
-
+        
         this.mysql_host = configMap.getOrDefault("mysql-host", "127.0.0.1");
         this.mysql_user = configMap.getOrDefault("mysql-user", "root");
         this.mysql_pass = configMap.getOrDefault("mysql-password", "12345678");
         this.mysql_database = configMap.getOrDefault("mysql-database", "knightage");
         this.mysql_port = Integer.parseInt(configMap.getOrDefault("mysql-port", String.valueOf(3306)));
+        this.web_port = Integer.parseInt(configMap.getOrDefault("web-port", String.valueOf(8081)));
         if (configMap.containsKey("indexRes")) {
             this.indexRes = Byte.parseByte(configMap.get("indexRes"));
         } else {

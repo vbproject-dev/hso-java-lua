@@ -329,4 +329,193 @@ function FileController:download(request)
     }
 end
 
+function FileController:info(request)
+    local path = request.query and request.query.path
+
+    if not path then
+        return { error = "Missing path" }
+    end
+
+    local info, err = FileService:info(path)
+
+    if not info then
+        return { error = err }
+    end
+
+    return info
+end
+
+function FileController:exists(request)
+    local path = request.query and request.query.path
+
+    if not path then
+        return { error = "Missing path" }
+    end
+
+    return {
+        path = path,
+        exists = FileService:exists(path),
+        existsAnywhere = FileService:existsAnywhere(path)
+    }
+end
+
+function FileController:permissions(request)
+    local path = request.query and request.query.path
+
+    if not path then
+        return { error = "Missing path" }
+    end
+
+    return {
+        path = path,
+        canRead = FileService:canRead(path),
+        canWrite = FileService:canWrite(path),
+        canExecute = FileService:canExecute(path)
+    }
+end
+
+function FileController:space(request)
+    local path = request.query and request.query.path
+
+    if not path then
+        return { error = "Missing path" }
+    end
+
+    return {
+        path = path,
+        total = FileService:totalSpace(path),
+        usable = FileService:usableSpace(path),
+        free = FileService:freeSpace(path)
+    }
+end
+
+function FileController:paths(request)
+    local path = request.query and request.query.path
+
+    if not path then
+        return { error = "Missing path" }
+    end
+
+    return {
+        path = path,
+        absolutePath = FileService:absolutePath(path),
+        executablePath = FileService:executablePath(path)
+    }
+end
+
+function FileController:setLastModified(request)
+    local data = JSON.toTable(request.body)
+
+    if not data or not data.path or data.timestamp == nil then
+        return { error = "Invalid request" }
+    end
+
+    local ok, err = FileService:setLastModified(
+        data.path,
+        data.timestamp
+    )
+
+    if not ok then
+        return { error = err }
+    end
+
+    return {
+        success = true,
+        path = data.path,
+        timestamp = data.timestamp
+    }
+end
+
+function FileController:setSize(request)
+    local data = JSON.toTable(request.body)
+
+    if not data or not data.path or data.size == nil then
+        return { error = "Invalid request" }
+    end
+
+    local ok, err = FileService:setSize(
+        data.path,
+        data.size
+    )
+
+    if not ok then
+        return { error = err }
+    end
+
+    return {
+        success = true,
+        path = data.path,
+        size = data.size
+    }
+end
+
+function FileController:setWriteable(request)
+    local data = JSON.toTable(request.body)
+
+    if not data or not data.path or data.value == nil then
+        return { error = "Invalid request" }
+    end
+
+    local ok, err = FileService:setWriteable(
+        data.path,
+        data.value
+    )
+
+    if not ok then
+        return { error = err }
+    end
+
+    return {
+        success = true,
+        path = data.path,
+        writable = data.value
+    }
+end
+
+function FileController:setReadOnly(request)
+    local data = JSON.toTable(request.body)
+
+    if not data or not data.path or data.value == nil then
+        return { error = "Invalid request" }
+    end
+
+    local ok, err = FileService:setReadOnly(
+        data.path,
+        data.value
+    )
+
+    if not ok then
+        return { error = err }
+    end
+
+    return {
+        success = true,
+        path = data.path,
+        readOnly = data.value
+    }
+end
+
+function FileController:setExecutable(request)
+    local data = JSON.toTable(request.body)
+
+    if not data or not data.path or data.value == nil then
+        return { error = "Invalid request" }
+    end
+
+    local ok, err = FileService:setExecutable(
+        data.path,
+        data.value
+    )
+
+    if not ok then
+        return { error = err }
+    end
+
+    return {
+        success = true,
+        path = data.path,
+        executable = data.value
+    }
+end
+
 return FileController

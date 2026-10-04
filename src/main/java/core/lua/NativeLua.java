@@ -16,6 +16,7 @@ public final class NativeLua {
 
     public static native void update(float dt);
 
+    public static native boolean isLoaded();
     public static native void destroy();
 
     private NativeLua() {

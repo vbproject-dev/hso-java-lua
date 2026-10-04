@@ -12,7 +12,8 @@ require "core.Class"
 require "core.Constants"
 require "core.Logger"
 require "core.LuaBridge"
-local AuctionManager = require "modules.features.auction.AuctionManager"
+local WebServer = require "web.WebServer"
+
 
 
 local MySQL           = require "core.MySQL"
@@ -25,6 +26,7 @@ local GameData        = require "data.GameData"
 
 local Main                = {}
 DEBUG                     = true
+local WEB                 = nil
 
 local MYSQL_ELAPSED       = 0
 local MYSQL_PING_INTERVAL = 300
@@ -58,6 +60,10 @@ function Main.onLoad()
     HandlerRegistry.loadAll({
         { module = "modules.handlers.CommonHandler" }
     })
+
+    -- Web Setup
+    WEB = WebServer.new()
+    WEB:init()
 end
 
 function Main.onUpdate(dt)
@@ -66,11 +72,15 @@ function Main.onUpdate(dt)
     if MYSQL_ELAPSED >= MYSQL_PING_INTERVAL then
         MySQL.instance():ping()
         MYSQL_ELAPSED = 0
-        log("MYSQL PING")
+    end
+
+    if WEB then
+        WEB:pollEvents()
     end
 end
 
 function Main.onDestroy()
+    MySQL.instance():close()
 end
 
 return Main

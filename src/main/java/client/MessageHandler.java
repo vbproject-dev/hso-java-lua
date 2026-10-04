@@ -374,7 +374,6 @@ public class MessageHandler {
                     npcId -= 256;
                 }
 
-
                 GlobalEvent globalEvent = GameEventManager.gI().getGlobalEvent(npcId);
                 if (globalEvent != null) {
                     MenuManager.openGlobalMenu(npcId, conn.p);

@@ -69,11 +69,7 @@ function MailManager.read(mailId)
     if mail.status == Mail.STATUS.UNREAD then
         mail.status = Mail.STATUS.READ
 
-        local ok, err = updateTable("mail", {
-            status = mail.status
-        }, {
-            id = mail.id
-        })
+        local ok, err = updateTable("mail", { status = mail.status }, { id = mail.id })
 
         if not ok then
             return false, err
@@ -87,6 +83,7 @@ function MailManager.claim(session, mails)
     local gold = 0
     local gem = 0
     local items = {}
+    local itemShows = ArrayList.new()
 
     mails:forEach(function(mail)
         if mail.status == Mail.STATUS.CLAIMED then
@@ -103,10 +100,20 @@ function MailManager.claim(session, mails)
 
     if gold > 0 then
         session.p:updateGem(gold)
+        itemShows:add({
+            id = -1,
+            quantity = gold,
+            category = 4,
+        })
     end
 
     if gem > 0 then
         session.p:updateGem(gem)
+        itemShows:add({
+            id = -2,
+            quantity = gem,
+            category = 4,
+        })
     end
 
     for _, item in ipairs(items) do
@@ -124,6 +131,14 @@ function MailManager.claim(session, mails)
             end
 
             session.p.item:add_item_bag3(itemObject)
+            itemShows:add({
+                id = itemObject.id,
+                name = itemObject.name,
+                icon = itemObject.icon,
+                color = itemObject.color,
+                quantity = 1,
+                category = 3,
+            })
         end
     end
 
@@ -138,7 +153,11 @@ function MailManager.claim(session, mails)
     end)
 
     session.p.item:updateBag()
-
+    Service.showReward(session, {
+        title = "Mail Box",
+        message = "Hadiah telah berhasil diterima.",
+        items = itemShows
+    })
     return true
 end
 

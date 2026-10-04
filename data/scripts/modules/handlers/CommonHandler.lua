@@ -48,6 +48,11 @@ local function createOtherMenu(session, itemIndex, item)
                     return
                 end
 
+                if not AuctionManager.isAllowed(item.id) then
+                    Service.notice(session, "Item ini tidak diperbolehkan untuk di lelang")
+                    return
+                end
+
                 local input = Input.build({
                     npcId = -1,
                     title = "Pasang Harga",
@@ -116,7 +121,9 @@ local function onBuyItem(session, packet)
         local auctionId = reader:readShort()
         local quanity = reader:readShort()
 
-        return AuctionManager.buy(session, auctionId)
+        AuctionManager.buy(session, auctionId)
+
+        return true
     end
 
     return false

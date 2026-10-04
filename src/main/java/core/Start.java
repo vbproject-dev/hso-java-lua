@@ -13,10 +13,13 @@ public class Start {
             if (SQL.is_connected) {
 
                 SQL.gI().close();
+
+                NativeLua.destroy();
+
                 System.out.println("SERVER STOPPED!");
+
             }
         }));
-
 
         ServerManager.gI().init();
 

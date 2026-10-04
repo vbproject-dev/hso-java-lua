@@ -1,8 +1,19 @@
 {
     "Lua.diagnostics.globals": [
-        "Java",
+        "log",
+        "try",
+        "Packet",
         "ArrayList",
-        "JSON"
+        "JSON",
+        "Input",
+        "File",
+        "Http",
+        "Crypto",
+        "TCPServer",
+        "Process",
+        "XXTEAUtil",
+        "Java",
+        "HttpServer"
     ],
     "Lua.completion.autoRequire": false,
     "psi-header.config": {

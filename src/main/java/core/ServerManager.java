@@ -114,7 +114,9 @@ public class ServerManager implements Runnable {
                 SaveData.process();
             }
 
-            NativeLua.update(sec);
+            if (NativeLua.isLoaded()) {
+                NativeLua.update(sec);
+            }
 
             // ===== Global chat =====
 

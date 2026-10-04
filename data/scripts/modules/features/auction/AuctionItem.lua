@@ -17,6 +17,7 @@ function AuctionItem:ctor(data)
     self.itemName = data.item_name
     self.price = data.price
     self.category = data.item_category or 3
+    self.quantity = data.quantity or 1
     self.price = data.price or 0
     self.status = data.status or 0
     self.createdAt = data.created_at
@@ -55,6 +56,7 @@ function AuctionItem:toDatabase()
         item_name = self.itemName,
         item_category = self.category,
         price = self.price,
+        quantity = self.quantity,
         days = self.days,
         item_info = JSON.fromTable(self.itemInfo),
         status = self.status,
@@ -68,6 +70,7 @@ function AuctionItem:toTable()
         item_id = self.itemId,
         item_name = self.itemName,
         item_category = self.category,
+        quantity = self.quantity,
         price = self.price,
         days = self.days,
         item_info = self.itemInfo,

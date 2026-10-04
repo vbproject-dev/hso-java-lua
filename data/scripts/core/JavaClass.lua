@@ -73,7 +73,38 @@ return {
             packet:writer():writeUTF(from)
             packet:writer():writeUTF(msg)
             session:addmsg(packet)
+        end,
+
+
+        showReward = function(session, data)
+            local packet = Java.new("client.io.Message", 78)
+            packet:writer():writeUTF(data.title)
+            packet:writer():writeByte(data.items:size())
+
+            data.items:forEach(function(item)
+                local name, icon = item.name, item.icon
+                if item.category == 4 then
+                    if item.id == -1 then
+                        name, icon = "Gold", 0
+                    elseif item.id == -2 then
+                        name, icon = "Permata", 246
+                    end
+                end
+
+                packet:writer():writeUTF(name)
+                packet:writer():writeShort(icon)
+                packet:writer():writeInt(item.quantity)
+                packet:writer():writeByte(item.category)
+                packet:writer():writeByte(0)
+                packet:writer():writeByte(item.category == 3 and item.color or 0)
+            end)
+
+            packet:writer():writeUTF(data.message)
+            packet:writer():writeByte(1)
+            packet:writer():writeByte(1)
+
+            session:addmsg(packet)
         end
-    },
+    }
 
 }

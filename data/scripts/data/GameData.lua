@@ -2,12 +2,13 @@ local AuctionManager = require "modules.features.auction.AuctionManager"
 local MailManager    = require "modules.features.mail.MailManager"
 local GameData       = {
     npcData = ArrayList.new(),
-
+    configs = ArrayList.new(),
 }
 
 function GameData.loadData()
     local datasets = {
-        { table = "npc", field = "npcData" },
+        { table = "npc",       field = "npcData" },
+        { table = "sv_config", field = "configs" },
 
     }
 
@@ -22,7 +23,7 @@ function GameData.loadData()
         GameData[dataset.field] = result
     end
 
-    AuctionManager.load()
+    AuctionManager.load(GameData.getConfig().auction)
     MailManager.load()
 
     return true
@@ -32,6 +33,10 @@ function GameData.getNpc(id)
     return GameData.npcData:findFirst(function(npc)
         return npc.id == id
     end)
+end
+
+function GameData.getConfig()
+    return GameData.configs:first()
 end
 
 return GameData
