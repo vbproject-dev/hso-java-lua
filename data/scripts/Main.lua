@@ -40,14 +40,10 @@ function Main.onLoad()
 
 
     -- Load Database
-
     if not GameData.loadData() then
         log("[GameData] Failed to load game data")
         return
     end
-
-    -- AuctionManager
-    AuctionManager.load()
 
     -- Register Npc Scripts
     GameData.npcData:forEach(function(npc)

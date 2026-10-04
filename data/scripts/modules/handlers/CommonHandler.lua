@@ -13,6 +13,7 @@ local Cmd            = require("core.Cmd")
 local MenuHelper     = require("modules.menu.MenuHelper")
 local AuctionManager = require("modules.features.auction.AuctionManager")
 local Input          = require("modules.menu.Input")
+local MailManager    = require("modules.features.mail.MailManager")
 
 
 
@@ -103,6 +104,26 @@ local function onMiniGame(session, packet)
     return false
 end
 
+local function onEnterGame(session, packet)
+    MailManager.notifyUnread(session)
+    return false
+end
+
+local function onBuyItem(session, packet)
+    if session.state:get("auction") then
+        local reader = packet:copyReader()
+        local type = reader:readByte()
+        local auctionId = reader:readShort()
+        local quanity = reader:readShort()
+
+        return AuctionManager.buy(session, auctionId)
+    end
+
+    return false
+end
+
 return {
-    [Cmd.MINI_GAME] = onMiniGame
+    [Cmd.MINI_GAME] = onMiniGame,
+    [Cmd.CHANGE_MAP] = onEnterGame,
+    [Cmd.BUY_ITEM] = onBuyItem,
 }

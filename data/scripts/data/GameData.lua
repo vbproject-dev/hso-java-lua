@@ -1,12 +1,14 @@
-local GameData = {
+local AuctionManager = require "modules.features.auction.AuctionManager"
+local MailManager    = require "modules.features.mail.MailManager"
+local GameData       = {
     npcData = ArrayList.new(),
-    auctions = ArrayList.new(),
+
 }
 
 function GameData.loadData()
     local datasets = {
-        { table = "npc",     field = "npcData" },
-        { table = "auction", field = "auctions" }
+        { table = "npc", field = "npcData" },
+
     }
 
     for _, dataset in ipairs(datasets) do
@@ -19,6 +21,9 @@ function GameData.loadData()
 
         GameData[dataset.field] = result
     end
+
+    AuctionManager.load()
+    MailManager.load()
 
     return true
 end

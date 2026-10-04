@@ -13,7 +13,7 @@ local MenuHelper   = require "modules.menu.MenuHelper"
 local Service      = require("core.JavaClass").Service
 
 local DESTINATIONS = {
-    "Desa",
+    "Desaa",
     "Kota Harta Karun",
     "Mataram Kuno",
     "Area Perdagangan",

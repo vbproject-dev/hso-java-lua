@@ -11,6 +11,7 @@
 local AuctionItem = class("AuctionItem")
 
 function AuctionItem:ctor(data)
+    self.id = data.id or -1
     self.playerId = data.player_id
     self.itemId = data.item_id
     self.itemName = data.item_name
@@ -27,6 +28,7 @@ function AuctionItem:ctor(data)
     if eq then
         eq.tier = self.itemInfo.tier
         eq.tierStar = self.itemInfo.tierStar
+        eq.color = self.itemInfo.color or eq.color
         eq.op:clear()
         for __, opt in ipairs(self.itemInfo.options) do
             eq.op:add(Java.new("template.Option", opt.id, opt.value))
@@ -34,6 +36,16 @@ function AuctionItem:ctor(data)
 
         self.itemObject = eq
     end
+end
+
+function AuctionItem:isExpired()
+    local createdAt = os.time({
+        year = tonumber(self.createdAt:sub(1, 4)),
+        month = tonumber(self.createdAt:sub(6, 7)),
+        day = tonumber(self.createdAt:sub(9, 10))
+    })
+
+    return os.difftime(os.time(), createdAt) >= self.days * 86400
 end
 
 function AuctionItem:toDatabase()
@@ -45,6 +57,20 @@ function AuctionItem:toDatabase()
         price = self.price,
         days = self.days,
         item_info = JSON.fromTable(self.itemInfo),
+        status = self.status,
+        created_at = self.createdAt
+    }
+end
+
+function AuctionItem:toTable()
+    return {
+        player_id = self.playerId,
+        item_id = self.itemId,
+        item_name = self.itemName,
+        item_category = self.category,
+        price = self.price,
+        days = self.days,
+        item_info = self.itemInfo,
         status = self.status,
         created_at = self.createdAt
     }

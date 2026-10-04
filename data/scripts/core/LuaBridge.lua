@@ -35,7 +35,7 @@ function LuaBridge.onTalk(session, npcId)
         if not script then
             return false
         end
-
+        session.state:put("auction", false)
         return script.onTalk(session, npcId)
     end)
 end

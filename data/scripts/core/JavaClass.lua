@@ -50,15 +50,30 @@ return {
             session:addmsg(m)
         end,
 
+        goMap = function(session, mapId, x, y)
+            local player = session.p
+            local vgo = Java.callStatic("model.map.Vgo", "create", mapId, x, y)
+            player:changeMap(player, vgo)
+        end,
+
         openUI = function(session, id)
             Java.callStatic("core.Service", "send_box_UI", session, id)
         end,
+
         buatJubah = function(session, id)
             Java.callStatic("core.MenuController", "createCloak", session, id)
         end,
+
         buatTitle = function(session, id)
             Java.callStatic("core.MenuController", "createTitle", session, id)
         end,
+
+        chat = function(session, from, msg)
+            local packet = Java.new("client.io.Message", Cmd.CHAT_TAB)
+            packet:writer():writeUTF(from)
+            packet:writer():writeUTF(msg)
+            session:addmsg(packet)
+        end
     },
 
 }

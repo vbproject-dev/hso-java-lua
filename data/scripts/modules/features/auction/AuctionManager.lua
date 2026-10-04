@@ -7,44 +7,100 @@
 --Author: VIBE
 --
 --]]
-local Service        = require("core.JavaClass").Service
-local Utils          = require("core.Utils")
-local GameData       = require("data.GameData")
-local AuctionItem    = require("modules.features.auction.AuctionItem")
-local Cmd            = require("core.Cmd")
 
-local MAX_ITEM       = 10
-local TAX            = 10
+local Service     = require("core.JavaClass").Service
+local AuctionItem = require("modules.features.auction.AuctionItem")
+local Cmd         = require("core.Cmd")
+
+local MailManager = require("modules.features.mail.MailManager")
+local Mail        = require("modules.features.mail.Mail")
+
+local MAX_ITEM    = 10
+local TAX         = 10
+
+
+local STATUS = {
+    ONSALE = 0,
+    SOLD = 1,
+    EXPIRED = 2,
+    CANCEL = 3,
+}
 
 local AuctionManager = {
-    auctionItems = ArrayList.new()
+    auctionItems = ArrayList.new(),
 }
 
 function AuctionManager.load()
-    GameData.auctions:forEach(function(data)
-        AuctionManager.auctionItems:add(AuctionItem.new(data))
-    end)
+    -- Load AuctionItem
+    local result, err = loadTable("auction")
+    if result then
+        result:forEach(function(data)
+            local auction = AuctionItem.new(data)
+
+            if auction.status == STATUS.ONSALE and auction:isExpired() then
+                MailManager.send({
+                    player_id = auction.playerId,
+                    sender = "Black Market",
+                    message = string.format("Item lelang %s telah kadaluarsa.", auction.itemName),
+                    items = {
+                        {
+                            item_id = auction.itemId,
+                            amount = 1,
+                            name = auction.itemName,
+                            category = auction.category,
+                            tier = auction.itemInfo.tier,
+                            tierStar = auction.itemInfo.tierStar,
+                            options = auction.itemInfo.options
+                        }
+                    },
+                    type = Mail.TYPE.AUCTION
+                })
+
+                -- Delete from auction
+                local ok, err = deleteTable("auction", { id = auction.id })
+                if not ok then
+                    log("[AuctionManager] Failed to delete auction %d %s", auction.id, err)
+                end
+                return
+            end
+
+            AuctionManager.auctionItems:add(auction)
+        end)
+    else
+        log("[AuctionManager] error: %s", err)
+    end
 end
 
 function AuctionManager.getItems(playerId)
     return AuctionManager.auctionItems:filter(function(data)
-        return data.player_id == playerId
+        return data.playerId == playerId
     end)
 end
 
 function AuctionManager.hasSlot(session)
-    return AuctionManager.getItems(session.p.objectId):size() < MAX_ITEM
+    return AuctionManager.auctionItems:filter(function(item)
+        return item.playerId == session.p.objectId and item.status == 0
+    end)
 end
 
 function AuctionManager.openAuction(session)
-    local items = AuctionManager.auctionItems
+    -- Only filter items that are on sale
+    -- 0 = ON SALE
+    -- 1 = SOLD OUT
+    -- 2 = Expired
+    -- 3 = CANCEL
+
+    local items = AuctionManager.auctionItems:filter(function(data)
+        return data.status == 0
+    end)
+
     local packet = Java.new("client.io.Message", Cmd.NPC_INFO)
     packet:writer():writeUTF("Auction")
     packet:writer():writeByte(1)
     packet:writer():writeShort(items:size())
     items:forEach(function(auction)
         local item = auction.itemObject
-        packet:writer():writeShort(item.id)
+        packet:writer():writeShort(auction.id)
         packet:writer():writeUTF(item.name)
         packet:writer():writeByte(item.clazz)
         packet:writer():writeByte(item.type)
@@ -61,6 +117,7 @@ function AuctionManager.openAuction(session)
     end)
 
     session:addmsg(packet)
+    session.state:put("auction", true)
 end
 
 function AuctionManager.registerItem(session, item, price)
@@ -82,6 +139,7 @@ function AuctionManager.registerItem(session, item, price)
         item_info = {
             tier = item.tier,
             tierStar = item.tierStar,
+            color = item.color,
             options = options,
         }
     })
@@ -95,6 +153,74 @@ function AuctionManager.registerItem(session, item, price)
         return false
     end
 
+    return true
+end
+
+function AuctionManager.buy(session, auctionId)
+    local auction = AuctionManager.auctionItems:findFirst(function(item)
+        return item.id == auctionId
+            and item.status == STATUS.ONSALE
+    end)
+
+    if not auction then
+        Service.notice(session, "Item tidak ditemukan")
+        return false
+    end
+
+    if auction.playerId == session.p.objectId then
+        Service.notice(session, "Kamu tidak dapat membeli item sendiri")
+        return false
+    end
+
+
+    local price = auction.price
+
+    if session.p:getGem() < price then
+        Service.notice(session, "Permata tidak cukup")
+        return false
+    end
+
+    session.p:updateGem(-price)
+
+    -- Give item to buyer
+
+
+    session.p.item:add_item_bag3(auction.itemObject)
+    session.p.item:updateBag()
+
+    -- Send money to seller through mail
+    local tax = math.floor(price * TAX / 100)
+    local received = price - tax
+
+    MailManager.send({
+        player_id = auction.playerId,
+        sender = "Black Market",
+        message = string.format(
+            "Item lelang %s telah terjual. harga: %d pajak: %d%% (-%d) diterima: %d",
+            auction.itemName,
+            price,
+            TAX,
+            tax,
+            received
+        ),
+        gem = received,
+        type = Mail.TYPE.AUCTION
+    })
+
+    auction.status = STATUS.SOLD
+
+    local ok, err = updateTable("auction", { status = STATUS.SOLD }, { id = auction.id })
+
+    if not ok then
+        log("[AuctionManager] Failed to update auction %d: %s", auction.id, err)
+        return false
+    end
+
+    AuctionManager.auctionItems:remove(auction)
+
+    AuctionManager.openAuction(session)
+
+    Service.notice(session, "Pembelian berhasil")
     return true
 end
 

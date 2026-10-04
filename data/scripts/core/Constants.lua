@@ -69,6 +69,19 @@ _G.insertTable  = function(tableName, data)
     return result
 end
 
+_G.deleteTable  = function(tableName, where)
+    local field, value = next(where)
+    local db = MySQL.instance()
+
+    local result, err = db:from(tableName):where(field, value):delete()
+
+    if err then
+        return false, err
+    end
+
+    return result
+end
+
 _G.try          = function(func, ...)
     local success, err = xpcall(func, debug.traceback, ...)
 
