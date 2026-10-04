@@ -101,7 +101,7 @@ function AuctionManager.openAuction(session)
     end)
 
     local packet = Java.new("client.io.Message", Cmd.NPC_INFO)
-    packet:writer():writeUTF("Auction")
+    packet:writer():writeUTF("Black Market")
     packet:writer():writeByte(1)
     packet:writer():writeShort(items:size())
     items:forEach(function(auction)
