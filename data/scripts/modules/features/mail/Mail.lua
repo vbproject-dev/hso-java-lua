@@ -11,17 +11,18 @@
 local Mail = class("Mail")
 
 Mail.TYPE = {
-    SYSTEM = 0,
-    COMPENSATION = 1,
-    AUCTION = 2,
-    EVENT = 3,
-    GM = 4
+    SYSTEM = "SYSTEM",
+    COMPENSATION = "COMPENSATION",
+    AUCTION = "AUCTION",
+    EVENT = "EVENT",
+    GM = "GM",
+    TOPUP = "TOPUP"
 }
 
 Mail.STATUS = {
-    UNREAD = 0,
-    READ = 1,
-    CLAIMED = 2
+    UNREAD = "UNREAD",
+    READ = "READ",
+    CLAIMED = "CLAIMED"
 }
 
 function Mail:ctor(data)

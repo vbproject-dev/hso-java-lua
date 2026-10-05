@@ -19,7 +19,7 @@ function AuctionItem:ctor(data)
     self.category = data.item_category or 3
     self.quantity = data.quantity or 1
     self.price = data.price or 0
-    self.status = data.status or 0
+    self.status = data.status
     self.createdAt = data.created_at
     self.itemInfo = data.item_info or {}
     self.days = data.days or 7

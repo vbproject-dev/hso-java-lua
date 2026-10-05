@@ -51,11 +51,14 @@ return {
             {
                 name = "Informasi",
                 action = function()
+                    local tax = AuctionManager.TAX
+                    local maxItem = AuctionManager.MAX_ITEM
+
                     Service.notice(session,
                         "Black Market\n" ..
-                        "Maksimal 10 item yang dapat dijual.\n" ..
+                        "Maksimal " .. maxItem .. " item yang dapat dijual.\n" ..
                         "Durasi penjualan adalah 7 hari.\n" ..
-                        "Pajak penjualan sebesar 10% dari harga item.\n" ..
+                        "Pajak penjualan sebesar " .. tax .. "% dari harga item.\n" ..
                         "Setelah item terjual, hasil penjualan dikirim melalui Mail.\n" ..
                         "Hasil yang diterima adalah harga setelah dipotong pajak.\n" ..
                         "Penjualan yang dibatalkan akan dikembalikan melalui Mail.\n" ..

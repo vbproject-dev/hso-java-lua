@@ -1462,7 +1462,6 @@ public class Manager {
             return Session.SESSION_LIST.toArray(new Session[0]);
         }
     }
-
     public static Player getPlayerById(int id) {
         for (Session session : snapshotSessions()) {
             if (session == null || session.p == null) {

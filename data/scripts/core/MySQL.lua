@@ -120,7 +120,7 @@ function Query:where(column, operator, value)
         [">="] = true,
         ["<="] = true,
         ["!="] = true,
-        ["<>"] = true
+        ["<>"] = true,
     }
 
     assert(operators[operator], "invalid where operator")

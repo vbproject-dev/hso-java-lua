@@ -8,15 +8,16 @@
 --
 --]]
 
-local Config = require("core.Config")
 local FileApi = require("web.features.files.FileApi")
+local MailApi = require("web.features.mail.MailApi")
 
 local WebServer = class("WebServer")
 
 function WebServer:ctor()
     self.server = HttpServer.new()
     self.features = {
-        FileApi
+        FileApi,
+        MailApi
     }
 end
 

@@ -15,7 +15,7 @@ local MailManager = {
 }
 
 function MailManager.load()
-    local result, err = loadTable("mail", { status = Mail.STATUS.UNREAD })
+    local result, err = loadTable("mail", { status = { "!=", Mail.STATUS.CLAIMED } })
 
     if not result then
         log("[MailManager] error: %s", err)
@@ -40,6 +40,11 @@ function MailManager.send(data)
 
     mail.id = id
     MailManager.mails:add(mail)
+
+    local player = Java.callStatic("core.Manager", "getPlayerById", mail.playerId)
+    if player then
+        MailManager.notifyUnread(player.conn)
+    end
 
     return mail
 end
@@ -117,27 +122,44 @@ function MailManager.claim(session, mails)
     end
 
     for _, item in ipairs(items) do
-        local itemObject = Java.callStatic("template.Item3", "fromTemplate", item.item_id)
+        local category = item.category
+        local itemObject
+        if category == 3 then
+            itemObject = Java.callStatic("template.Item3", "fromTemplate", item.item_id)
+        elseif category == 4 then
+            itemObject = Java.callStatic("template.Item47", "getPotion", item.item_id)
+        elseif category == 7 then
+            itemObject = Java.callStatic("template.Item47", "getMaterial", item.item_id)
+        end
 
         if itemObject then
-            itemObject.tier = item.tier or 0
-            itemObject.tierStar = item.tierStar or 0
-            itemObject.color = item.color or itemObject.color
+            if category == 3 then
+                itemObject.tier = item.tier or 0
+                itemObject.tierStar = item.tierStar or 0
+                itemObject.color = item.color or itemObject.color
 
-            itemObject.op:clear()
+                itemObject.op:clear()
 
-            for _, option in ipairs(item.options or {}) do
-                itemObject.op:add(Java.new("template.Option", option.id, option.value))
+                for _, option in ipairs(item.options or {}) do
+                    itemObject.op:add(Java.new("template.Option", option.id, option.value))
+                end
+
+                session.p.item:add_item_bag3(itemObject)
+            else
+                session.p.item:add_item_bag47(item.item_id, item.quantity, item.category)
             end
 
-            session.p.item:add_item_bag3(itemObject)
+            if not item.name then
+                item.name = itemObject.name
+            end
+
             itemShows:add({
                 id = itemObject.id,
                 name = itemObject.name,
-                icon = itemObject.icon,
-                color = itemObject.color,
-                quantity = 1,
-                category = 3,
+                icon = itemObject.icon or 0,
+                color = itemObject.color or 0,
+                quantity = item.quantity or 1,
+                category = category,
             })
         end
     end

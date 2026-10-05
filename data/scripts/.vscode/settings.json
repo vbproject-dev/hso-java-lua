@@ -13,7 +13,8 @@
         "Process",
         "XXTEAUtil",
         "Java",
-        "HttpServer"
+        "HttpServer",
+        "MysqlConnection"
     ],
     "Lua.completion.autoRequire": false,
     "psi-header.config": {

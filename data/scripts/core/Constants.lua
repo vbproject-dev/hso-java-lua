@@ -17,7 +17,11 @@ _G.loadTable    = function(tableName, where)
 
     if where then
         local field, value = next(where)
-        query = query:where(field, value)
+        if type(value) == "table" then
+            query = query:where(field, value[1], value[2])
+        else
+            query = query:where(field, value)
+        end
     end
 
     local data, err = query:getAll()

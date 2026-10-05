@@ -16,23 +16,24 @@ local Cmd         = require("core.Cmd")
 local MailManager = require("modules.features.mail.MailManager")
 local Mail        = require("modules.features.mail.Mail")
 
--- Configurations
-local MAX_ITEM    = 5
-local TAX         = 10
-local BLACKLIST   = {}
 
 
 
 
-local STATUS         = {
-    ONSALE = 0,
-    SOLD = 1,
-    EXPIRED = 2,
-    CANCEL = 3,
+local AuctionManager  = {
+    auctionItems = ArrayList.new(),
+
+    -- Configurations
+    MAX_ITEM = 5,
+    TAX = 10,
+    BLACKLIST = {}
 }
 
-local AuctionManager = {
-    auctionItems = ArrayList.new(),
+AuctionManager.STATUS = {
+    ONSALE = "ONSALE",
+    SOLD = "SOLD",
+    EXPIRED = "EXPIRED",
+    CANCEL = "CANCEL",
 }
 
 function AuctionManager.load(cfg)
@@ -42,7 +43,7 @@ function AuctionManager.load(cfg)
         result:forEach(function(data)
             local auction = AuctionItem.new(data)
 
-            if auction.status == STATUS.ONSALE and auction:isExpired() then
+            if auction.status == AuctionManager.STATUS.ONSALE and auction:isExpired() then
                 MailManager.send({
                     player_id = auction.playerId,
                     sender = "Black Market",
@@ -77,17 +78,17 @@ function AuctionManager.load(cfg)
 
     -- Overwrite Configurations
     if cfg then
-        TAX = cfg.tax
-        MAX_ITEM = cfg.maxitem
+        AuctionManager.TAX = cfg.tax
+        AuctionManager.MAX_ITEM = cfg.maxitem
 
         for _, id in ipairs(cfg.blacklist or {}) do
-            BLACKLIST[id] = true
+            AuctionManager.BLACKLIST[id] = true
         end
     end
 end
 
 function AuctionManager.isAllowed(id)
-    if BLACKLIST[id] then
+    if AuctionManager.BLACKLIST[id] then
         return false
     end
 
@@ -103,12 +104,12 @@ end
 function AuctionManager.hasSlot(session)
     return AuctionManager.auctionItems:filter(function(item)
         return item.playerId == session.p.objectId and item.status == 0
-    end):size() < MAX_ITEM
+    end):size() < AuctionManager.MAX_ITEM
 end
 
 function AuctionManager.hasItemOnSale(session)
     return AuctionManager.auctionItems:filter(function(item)
-        return item.playerId == session.p.objectId and item.status == STATUS.ONSALE
+        return item.playerId == session.p.objectId and item.status == AuctionManager.STATUS.ONSALE
     end):size() > 0
 end
 
@@ -120,7 +121,7 @@ function AuctionManager.openAuction(session)
     -- 3 = CANCEL
 
     local items = AuctionManager.auctionItems:filter(function(data)
-        return data.status == 0
+        return data.status == AuctionManager.STATUS.ONSALE
     end)
 
     local packet = Java.new("client.io.Message", Cmd.NPC_INFO)
@@ -164,7 +165,7 @@ function AuctionManager.registerItem(session, item, price, quantity)
         price = price,
         quantity = quantity or 1,
         days = 7,
-        status = 0,
+        status = AuctionManager.STATUS.ONSALE,
         created_at = os.date("%Y-%m-%d %H:%M:%S"),
         item_info = {
             tier = item.tier,
@@ -190,7 +191,9 @@ end
 
 function AuctionManager.cancel(session, auctionId)
     local auction = AuctionManager.auctionItems:findFirst(function(item)
-        return item.id == auctionId and item.playerId == session.p.objectId and item.status == STATUS.ONSALE
+        return item.id == auctionId
+            and item.playerId == session.p.objectId
+            and item.status == AuctionManager.STATUS.ONSALE
     end)
 
     if not auction then
@@ -216,7 +219,7 @@ function AuctionManager.cancel(session, auctionId)
         type = Mail.TYPE.AUCTION
     })
 
-    auction.status = STATUS.CANCEL
+    auction.status = AuctionManager.STATUS.CANCEL
 
     local ok, err = deleteTable("auction", { id = auction.id })
     if not ok then
@@ -233,7 +236,7 @@ end
 function AuctionManager.cancelAll(session)
     local auctions = AuctionManager.auctionItems:filter(function(item)
         return item.playerId == session.p.objectId
-            and item.status == STATUS.ONSALE
+            and item.status == AuctionManager.STATUS.ONSALE
     end)
 
     if auctions:size() == 0 then
@@ -260,7 +263,7 @@ function AuctionManager.cancelAll(session)
             type = Mail.TYPE.AUCTION
         })
 
-        auction.status = STATUS.CANCEL
+        auction.status = AuctionManager.STATUS.CANCEL
 
         local ok, err = deleteTable("auction", { id = auction.id })
         if not ok then
@@ -277,7 +280,7 @@ end
 
 function AuctionManager.buy(session, auctionId)
     local auction = AuctionManager.auctionItems:findFirst(function(auction)
-        return auction.id == auctionId and auction.status == STATUS.ONSALE
+        return auction.id == auctionId and auction.status == AuctionManager.STATUS.ONSALE
     end)
 
 
@@ -307,7 +310,7 @@ function AuctionManager.buy(session, auctionId)
     session.p.item:updateBag()
 
     -- Send money to seller through mail
-    local tax = math.floor(price * TAX / 100)
+    local tax = math.floor(price * AuctionManager.TAX / 100)
     local received = price - tax
 
     MailManager.send({
@@ -318,7 +321,7 @@ function AuctionManager.buy(session, auctionId)
         type = Mail.TYPE.AUCTION
     })
 
-    auction.status = STATUS.SOLD
+    auction.status = AuctionManager.STATUS.SOLD
 
     local ok, err = deleteTable("auction", { id = auctionId })
 
