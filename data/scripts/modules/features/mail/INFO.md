@@ -1,40 +1,10 @@
-# MailManager Usage
-
-## Send Mail
-
-```lua
-local MailManager = require("modules.features.mail.MailManager")
-
-MailManager.send({
-    player_id = 762,
-    sender = "System",
-    message = "Congratulations!",
-    gold = 10000,
-    gem = 100,
-    items = {}
-})
-```
-
-## Send Mail With Item
-
-```lua
-MailManager.send({
-    player_id = 762,
-    sender = "System",
-    message = "Congratulations!",
-    items = {
-        {
-            item_id = 1001,
-            category = 3,
-            quantity = 1
-        }
-    }
-})
-```
-
 ## Mail API
 
 **POST** `/api/mail`
+
+| Header      | Required | Description                                     |
+| ----------- | -------- | ----------------------------------------------- |
+| `X-API-Key` | Yes      | Secret API key used to authenticate the request |
 
 ### Request Body
 
@@ -51,5 +21,3 @@ MailManager.send({
     {"item_id": 10, "category": 7, "quantity":200}
     ]
 }
-
-

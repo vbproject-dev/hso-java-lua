@@ -1,3 +1,15 @@
+--[[
+--
+--Filename: MailApi.lua
+--
+--Created Date: Monday, October 5th 2026, 8:24:45 am
+--
+--Author: VIBE
+--
+--]]
+
+
+
 local MailController = require("web.features.mail.MailController")
 
 local MailApi = {}
