@@ -31,6 +31,13 @@ function MemberManager.load()
                 log("[MemberManager] failed to delete expired membership %d: %s", member.playerId, err)
             end
 
+            MailManager.send({
+                player_id = member.playerId,
+                sender = "System",
+                message = string.format("Membership %s telah kadaluarsa", member.type),
+                items = {}
+            })
+
             return
         end
 
