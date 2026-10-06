@@ -195,7 +195,7 @@ function AuctionManager.registerItem(session, item, price, quantity)
 
     itemData.id = id
     AuctionManager.auctionItems:add(itemData)
-    log("Add item to black market" .. itemData.id)
+
     return true
 end
 

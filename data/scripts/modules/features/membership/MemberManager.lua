@@ -34,7 +34,7 @@ function MemberManager.load()
             return
         end
 
-        MemberManager.members:add()
+        MemberManager.members:add(member)
     end)
 end
 
