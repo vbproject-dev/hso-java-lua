@@ -53,17 +53,24 @@ return {
                 action = function()
                     local tax = AuctionManager.TAX
                     local maxItem = AuctionManager.MAX_ITEM
+                    local minLevel = AuctionManager.MIN_LEVEL
+                    local registerTax = AuctionManager.REGISTER_TAX
 
-                    Service.notice(session,
-                        "Black Market\n" ..
-                        "Maksimal " .. maxItem .. " item yang dapat dijual.\n" ..
-                        "Durasi penjualan adalah 7 hari.\n" ..
-                        "Pajak penjualan sebesar " .. tax .. "% dari harga item.\n" ..
-                        "Setelah item terjual, hasil penjualan dikirim melalui Mail.\n" ..
-                        "Hasil yang diterima adalah harga setelah dipotong pajak.\n" ..
-                        "Penjualan yang dibatalkan akan dikembalikan melalui Mail.\n" ..
-                        "Item yang tidak terjual hingga masa berlaku habis akan dikembalikan melalui Mail.\n" ..
-                        "Kamu tidak dapat membeli item milik sendiri."
+
+                    Service.chat(session, "Black Market",
+                        "\nPanduan dan Persyaratan\n" ..
+                        "- Level karakter harus mencapai " .. minLevel .. "+.\n" ..
+                        "- Maksimal " .. maxItem .. " item dapat dijual secara bersamaan.\n" ..
+                        "- Membership mendapatkan 5 slot penjualan tambahan.\n" ..
+                        "- Membership tidak dikenakan pajak registrasi dan penjualan.\n" ..
+                        "- Durasi penjualan adalah 7 hari.\n" ..
+                        "- Pajak penjualan sebesar " .. tax .. "% dari harga item.\n" ..
+                        "- Biaya pendaftaran penjualan sebesar " .. registerTax .. "% dari harga item.\n" ..
+                        "- Jika item terjual, hasil penjualan akan dikirim melalui Mail.\n" ..
+                        "- Hasil penjualan akan dikirim setelah dipotong pajak.\n" ..
+                        "- Jika penjualan dibatalkan, item akan dikembalikan melalui Mail.\n" ..
+                        "- Item yang tidak terjual hingga masa berlaku berakhir akan dikembalikan melalui Mail.\n" ..
+                        "- Kamu tidak dapat membeli item yang kamu jual sendiri."
                     )
                 end
             },

@@ -8,9 +8,10 @@
 --
 --]]
 
-local Service     = require("core.JavaClass").Service
-local AuctionItem = require("modules.features.auction.AuctionItem")
-local Cmd         = require("core.Cmd")
+local Service       = require("core.JavaClass").Service
+local AuctionItem   = require("modules.features.auction.AuctionItem")
+local Cmd           = require("core.Cmd")
+local MemberManager = require("modules.features.membership.MemberManager")
 
 
 local MailManager = require("modules.features.mail.MailManager")
@@ -25,8 +26,10 @@ local AuctionManager  = {
 
     -- Configurations
     MAX_ITEM = 5,
-    TAX = 10,
-    BLACKLIST = {}
+    TAX = 4,
+    BLACKLIST = {},
+    MIN_LEVEL = 250,
+    REGISTER_TAX = 1,
 }
 
 AuctionManager.STATUS = {
@@ -80,7 +83,8 @@ function AuctionManager.load(cfg)
     if cfg then
         AuctionManager.TAX = cfg.tax
         AuctionManager.MAX_ITEM = cfg.maxitem
-
+        AuctionManager.MIN_LEVEL = (cfg.minlevel or AuctionManager.MIN_LEVEL)
+        AuctionManager.REGISTER_TAX = (cfg.registertax or AuctionManager.REGISTER_TAX)
         for _, id in ipairs(cfg.blacklist or {}) do
             AuctionManager.BLACKLIST[id] = true
         end
@@ -114,12 +118,6 @@ function AuctionManager.hasItemOnSale(session)
 end
 
 function AuctionManager.openAuction(session)
-    -- Only filter items that are on sale
-    -- 0 = ON SALE
-    -- 1 = SOLD OUT
-    -- 2 = Expired
-    -- 3 = CANCEL
-
     local items = AuctionManager.auctionItems:filter(function(data)
         return data.status == AuctionManager.STATUS.ONSALE
     end)
@@ -155,6 +153,18 @@ function AuctionManager.registerItem(session, item, price, quantity)
     item.op:forEach(function(opt)
         table.insert(options, { id = opt.id, value = opt.param })
     end)
+
+    -- Check membership
+    if not MemberManager.has(session.p.objectId) then
+        -- Bukan membership potong pajak pendaftaran
+        local tax = math.floor(price * AuctionManager.REGISTER_TAX / 100)
+        if session.p:getGem() < tax then
+            Service.notice(session, "Permata tidak cukup untuk biaya pendaftaran")
+            return false
+        end
+
+        session.p:updateGem(-tax)
+    end
 
     -- Create auction
     local itemData = AuctionItem.new({
@@ -309,8 +319,10 @@ function AuctionManager.buy(session, auctionId)
     session.p.item:add_item_bag3(auction.itemObject)
     session.p.item:updateBag()
 
-    -- Send money to seller through mail
-    local tax = math.floor(price * AuctionManager.TAX / 100)
+    -- Potong pajak jika pemilik item bukan membership
+    local isMembersip = MemberManager.has(auction.playerId)
+
+    local tax = isMembersip and math.floor(price * AuctionManager.TAX / 100) or 0
     local received = price - tax
 
     MailManager.send({

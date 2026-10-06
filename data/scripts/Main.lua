@@ -80,6 +80,10 @@ function Main.onUpdate(dt)
 end
 
 function Main.onDestroy()
+    if WEB then
+        WEB:stop()
+    end
+
     MySQL.instance():close()
 end
 

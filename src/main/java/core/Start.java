@@ -16,8 +16,6 @@ public class Start {
 
                 NativeLua.destroy();
 
-                System.out.println("SERVER STOPPED!");
-
             }
         }));
 

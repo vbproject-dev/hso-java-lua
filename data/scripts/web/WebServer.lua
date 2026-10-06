@@ -10,6 +10,7 @@
 
 local FileApi = require("web.features.files.FileApi")
 local MailApi = require("web.features.mail.MailApi")
+local MemberApi = require("web.features.membership.MemberApi")
 
 local WebServer = class("WebServer")
 
@@ -17,7 +18,8 @@ function WebServer:ctor()
     self.server = HttpServer.new()
     self.features = {
         FileApi,
-        MailApi
+        MailApi,
+        MemberApi
     }
 end
 
@@ -63,6 +65,10 @@ end
 
 function WebServer:pollEvents()
     self.server:pollEvents()
+end
+
+function WebServer:stop()
+    self.server:stop()
 end
 
 return WebServer

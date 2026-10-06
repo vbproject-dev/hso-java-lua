@@ -43,6 +43,11 @@ local function createOtherMenu(session, itemIndex, item)
         {
             name = "Lelang",
             action = function()
+                if session.p.level < AuctionManager.MIN_LEVEL then
+                    Service.notice(session, "Level karakter belum memenuhi persyaratan.")
+                    return
+                end
+
                 if not AuctionManager.hasSlot(session) then
                     Service.notice(session, "Slot lelang sudah penuh")
                     return

@@ -104,7 +104,7 @@ function MailManager.claim(session, mails)
     end)
 
     if gold > 0 then
-        session.p:updateGem(gold)
+        session.p:updateGold(gold)
         itemShows:add({
             id = -1,
             quantity = gold,
