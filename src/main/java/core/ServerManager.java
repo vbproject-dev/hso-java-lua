@@ -114,7 +114,7 @@ public class ServerManager implements Runnable {
                 SaveData.process();
             }
 
-            if (NativeLua.isLoaded()) {
+            if ( Manager.gI().useLua && NativeLua.isLoaded()) {
                 NativeLua.update(sec);
             }
 

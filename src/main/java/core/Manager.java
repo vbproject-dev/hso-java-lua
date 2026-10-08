@@ -130,7 +130,7 @@ public class Manager {
     public static final List<Notification> notifications = new ArrayList<>();
     public static SvConfig svConfig;
     public ServerSetting setting;
-
+    public boolean useLua = false;
     public List<Skill> skillList = new ArrayList<>();
 
     public static void setClanThue() {
@@ -1256,6 +1256,8 @@ public class Manager {
         this.mysql_database = configMap.getOrDefault("mysql-database", "knightage");
         this.mysql_port = Integer.parseInt(configMap.getOrDefault("mysql-port", String.valueOf(3306)));
         this.web_port = Integer.parseInt(configMap.getOrDefault("web-port", String.valueOf(8081)));
+        this.useLua = Boolean.parseBoolean(configMap.get("use-lua"));
+
         if (configMap.containsKey("indexRes")) {
             this.indexRes = Byte.parseByte(configMap.get("indexRes"));
         } else {

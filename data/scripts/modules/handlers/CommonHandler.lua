@@ -71,6 +71,12 @@ local function createOtherMenu(session, itemIndex, item)
                             return
                         end
 
+                        local minPrice = AuctionManager.getMinPrice(item.color)
+                        if value < minPrice then
+                            Service.notice(session, "Harga terlalu rendah.")
+                            return
+                        end
+
                         if AuctionManager.registerItem(session, item, value) then
                             session.p.item:remove(3, itemIndex, 1)
                             session.p.item:updateBag()

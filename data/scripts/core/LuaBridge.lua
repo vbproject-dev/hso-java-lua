@@ -19,7 +19,7 @@ function LuaBridge.onMessage(session, msg)
     local handler = HandlerRegistry.get(msg.cmd)
 
     if not handler then
-        log("[Network] Unhandled Command %s from %s", Cmd.getName(msg.cmd), session.ip)
+        -- log("[Network] Unhandled Command %s from %s", Cmd.getName(msg.cmd), session.ip)
         return false
     end
 

@@ -524,10 +524,11 @@ public class MenuController {
         short npcId = m.reader().readShort();
         byte menuId = m.reader().readByte();
         byte index = m.reader().readByte();
-
-        boolean isHandledByLua = JavaToLua.call("core.LuaBridge.onSelectMenu", new Object[]{conn, npcId, menuId, index});
-        if (isHandledByLua) {
-            return;
+        if (Manager.gI().useLua) {
+            boolean isHandledByLua = JavaToLua.call("core.LuaBridge.onSelectMenu", new Object[]{conn, npcId, menuId, index});
+            if (isHandledByLua) {
+                return;
+            }
         }
 
         log.info("DYNAMIC_MENU NPC {} ID {} INDEX {}", npcId, menuId, index);

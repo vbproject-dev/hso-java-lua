@@ -20,14 +20,14 @@ public class Start {
         }));
 
         ServerManager.gI().init();
+        if (Manager.gI().useLua) {
+            if (!NativeLua.initialize()) {
+                log.info("Native Lua failed to load!");
+                return;
+            }
 
-        if (!NativeLua.initialize()) {
-            log.info("Native Lua failed to load!");
-            return;
+            NativeLua.load("data/scripts/Main.lua");
         }
-
-        NativeLua.load("data/scripts/Main.lua");
-
     }
 }
 

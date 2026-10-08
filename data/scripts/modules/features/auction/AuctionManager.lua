@@ -30,6 +30,7 @@ local AuctionManager  = {
     BLACKLIST = {},
     MIN_LEVEL = 250,
     REGISTER_TAX = 1,
+    MIN_PRICE = { 25000, 25000, 25000, 25000, 50000, 100000 }
 }
 
 AuctionManager.STATUS = {
@@ -57,6 +58,7 @@ function AuctionManager.load(cfg)
                             amount = 1,
                             name = auction.itemName,
                             category = auction.category,
+                            color = auction.itemInfo.color,
                             tier = auction.itemInfo.tier,
                             tierStar = auction.itemInfo.tierStar,
                             options = auction.itemInfo.options
@@ -85,6 +87,7 @@ function AuctionManager.load(cfg)
         AuctionManager.MAX_ITEM = cfg.maxitem
         AuctionManager.MIN_LEVEL = (cfg.minlevel or AuctionManager.MIN_LEVEL)
         AuctionManager.REGISTER_TAX = (cfg.registertax or AuctionManager.REGISTER_TAX)
+        AuctionManager.MIN_PRICE = cfg.minprice or AuctionManager.MIN_PRICE
         for _, id in ipairs(cfg.blacklist or {}) do
             AuctionManager.BLACKLIST[id] = true
         end
@@ -106,9 +109,11 @@ function AuctionManager.getItems(playerId)
 end
 
 function AuctionManager.hasSlot(session)
+    local hasMember = MemberManager.has(session.p.objectId)
+    local max = hasMember and (AuctionManager.MAX_ITEM + 5) or AuctionManager.MAX_ITEM
     return AuctionManager.auctionItems:filter(function(item)
         return item.playerId == session.p.objectId and item.status == 0
-    end):size() < AuctionManager.MAX_ITEM
+    end):size() < max
 end
 
 function AuctionManager.hasItemOnSale(session)
@@ -221,6 +226,7 @@ function AuctionManager.cancel(session, auctionId)
                 quantity = auction.quantity,
                 name = auction.itemName,
                 category = auction.category,
+                color = auction.itemInfo.color,
                 tier = auction.itemInfo.tier,
                 tierStar = auction.itemInfo.tierStar,
                 options = auction.itemInfo.options
@@ -264,6 +270,7 @@ function AuctionManager.cancelAll(session)
                     item_id = auction.itemId,
                     quantity = auction.quantity,
                     name = auction.itemName,
+                    color = auction.itemInfo.color,
                     category = auction.category,
                     tier = auction.itemInfo.tier,
                     tierStar = auction.itemInfo.tierStar,
@@ -286,6 +293,10 @@ function AuctionManager.cancelAll(session)
 
     Service.notice(session, "Semua penjualan berhasil dibatalkan")
     return true
+end
+
+function AuctionManager.getMinPrice(color)
+    return AuctionManager.MIN_PRICE[color + 1] or 0
 end
 
 function AuctionManager.buy(session, auctionId)
@@ -320,9 +331,9 @@ function AuctionManager.buy(session, auctionId)
     session.p.item:updateBag()
 
     -- Potong pajak jika pemilik item bukan membership
-    local isMembersip = MemberManager.has(auction.playerId)
+    local membersip = MemberManager.has(auction.playerId)
 
-    local tax = isMembersip and math.floor(price * AuctionManager.TAX / 100) or 0
+    local tax = not membersip and math.floor(price * AuctionManager.TAX / 100) or 0
     local received = price - tax
 
     MailManager.send({

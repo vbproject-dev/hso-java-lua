@@ -49,11 +49,13 @@ public class MessageHandler {
     }
 
     public void process_msg(Message m) throws IOException {
+        boolean isHandledByLua;
 
-
-        boolean isHandledByLua = JavaToLua.call("core.LuaBridge.onMessage", new Object[]{conn, m});
-        if (isHandledByLua) {
-            return;
+        if (Manager.gI().useLua) {
+            isHandledByLua = JavaToLua.call("core.LuaBridge.onMessage", new Object[]{conn, m});
+            if (isHandledByLua) {
+                return;
+            }
         }
 
         switch (m.cmd) {
@@ -315,8 +317,12 @@ public class MessageHandler {
                 break;
             }
             case -31: {
-                isHandledByLua = JavaToLua.call("core.LuaBridge.onInput", new Object[]{conn, m});
-                if (!isHandledByLua) {
+                if (Manager.gI().useLua) {
+                    isHandledByLua = JavaToLua.call("core.LuaBridge.onInput", new Object[]{conn, m});
+                    if (!isHandledByLua) {
+                        TextFromClient.process(conn, m);
+                    }
+                }else{
                     TextFromClient.process(conn, m);
                 }
                 break;
@@ -363,9 +369,11 @@ public class MessageHandler {
 
 
                 int npcId = m.reader().readByte();
-                isHandledByLua = JavaToLua.call("core.LuaBridge.onTalk", new Object[]{conn, npcId});
-                if (isHandledByLua) {
-                    return;
+                if (Manager.gI().useLua) {
+                    isHandledByLua = JavaToLua.call("core.LuaBridge.onTalk", new Object[]{conn, npcId});
+                    if (isHandledByLua) {
+                        return;
+                    }
                 }
 
                 // FIX Halloween: id NPC dikirim ke client sebagai BYTE (-128..127).

@@ -56,10 +56,11 @@ return {
                     local minLevel = AuctionManager.MIN_LEVEL
                     local registerTax = AuctionManager.REGISTER_TAX
 
+                    local minPrice = AuctionManager.MIN_PRICE
 
                     Service.chat(session, "Black Market",
                         "\nPanduan dan Persyaratan\n" ..
-                        "- Level karakter harus mencapai " .. minLevel .. "+.\n" ..
+                        "- Level karakter harus mencapai " .. minLevel .. " atau lebih\n" ..
                         "- Maksimal " .. maxItem .. " item dapat dijual secara bersamaan.\n" ..
                         "- Membership mendapatkan 5 slot penjualan tambahan.\n" ..
                         "- Membership tidak dikenakan pajak registrasi dan penjualan.\n" ..
@@ -70,36 +71,17 @@ return {
                         "- Hasil penjualan akan dikirim setelah dipotong pajak.\n" ..
                         "- Jika penjualan dibatalkan, item akan dikembalikan melalui Mail.\n" ..
                         "- Item yang tidak terjual hingga masa berlaku berakhir akan dikembalikan melalui Mail.\n" ..
-                        "- Kamu tidak dapat membeli item yang kamu jual sendiri."
+                        "- Kamu tidak dapat membeli item yang kamu jual sendiri.\n" ..
+                        "- Harga minimum untuk tiap warna item.\n" ..
+                        "- Putih  : " .. minPrice[1] .. " Permata\n" ..
+                        "- Biru   : " .. minPrice[2] .. " Permata\n" ..
+                        "- Kuning : " .. minPrice[3] .. " Permata\n" ..
+                        "- Ungu   : " .. minPrice[4] .. " Permata\n" ..
+                        "- Oranye : " .. minPrice[5] .. " Permata\n" ..
+                        "- Hijau  : " .. minPrice[6] .. " Permata\n"
                     )
                 end
-            },
-
-            -- {
-            --     name = "Go Map",
-            --     action = function()
-            --         local input = Input.build({
-            --             npcId = npcId,
-            --             title = "Buat Guild",
-            --             fields = {
-            --                 { name = "Map ID", type = InputType.NUMERIC },
-            --                 { name = "X",      type = InputType.NUMERIC },
-            --                 { name = "Y",      type = InputType.NUMERIC },
-            --             },
-
-            --             action = function(session, values)
-            --                 local map, x, y = values[1], values[2], values[3]
-            --                 if not map or not x or not y then
-            --                     return
-            --                 end
-
-            --                 Service.goMap(session, map, x, y)
-            --             end,
-            --         })
-            --         session.state:put("input", input)
-            --         Service.openInput(session, input)
-            --     end
-            -- }
+            }
         })
 
         session.state:put("menu", menu)
