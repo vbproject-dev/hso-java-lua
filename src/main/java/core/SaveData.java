@@ -86,7 +86,6 @@ public class SaveData {
                 ps.executeUpdate();
             }
             ps.close();
-
             conn.commit();
 
             // flush player
