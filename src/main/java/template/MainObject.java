@@ -57,7 +57,7 @@ public class MainObject {
 
     private static final long MOUNT_ATTACK_EFF_INTERVAL_MS = 1 * 10_000L;
 
-    private static final boolean MOUNT_ATTACK_EFF_DEBUG = true;
+    private static final boolean MOUNT_ATTACK_EFF_DEBUG = false;
 
     private static final Map<Short, Integer> MOUNT_ATTACK_EFF_MAP = Map.ofEntries(
             Map.entry((short) 5285, 80),
