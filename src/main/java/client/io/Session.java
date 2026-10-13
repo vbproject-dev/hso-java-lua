@@ -42,16 +42,13 @@ public class Session implements Runnable {
 
     public static final List<Session> SESSION_LIST = new LinkedList<>();
 
-    /**
-     * Salinan aman (thread-safe) dari SESSION_LIST untuk diiterasi. SESSION_LIST ditulis (add/remove)
-     * di dalam synchronized oleh thread lain; iterasi langsung tanpa lock bisa melempar
-     * ConcurrentModificationException / IndexOutOfBoundsException.
-     */
+
     public static Session[] snapshotList() {
         synchronized (SESSION_LIST) {
             return SESSION_LIST.toArray(new Session[0]);
         }
     }
+
     // public static final List<Session> client_entrys = new ArrayList<>();
     public final Socket socket;
     private DataInputStream dis;
@@ -59,20 +56,6 @@ public class Session implements Runnable {
     private Thread sendd;
     private Thread receiv;
     public boolean connected;
-    // FIX (root cause of recurring "HSO_pool - Interrupted during connection
-    // acquisition" SQLExceptions): disconnect() had no guard against being
-    // invoked twice concurrently for the same session. It can legitimately
-    // be triggered from more than one thread — e.g. the player's own receiv
-    // thread (natural EOF/socket close, or an anti-spam kick from
-    // MapService.use_skill) AND, separately, a background game-tick/map
-    // cleanup thread that notices the same socket already looks closed
-    // (see GameMap's "!p.conn.connected" cleanup) and also calls
-    // p.conn.close(). Every call unconditionally did
-    // this.receiv.interrupt(), so a second, concurrent call would interrupt
-    // the receiv thread from the FIRST call while it was still blocked
-    // inside p.flush() waiting on a HikariCP connection — producing exactly
-    // this InterruptedException mid-save. Guarding with an atomic
-    // compare-and-set makes disconnect() run its body at most once.
     private final java.util.concurrent.atomic.AtomicBoolean disconnecting = new java.util.concurrent.atomic.AtomicBoolean(
             false);
     private final BlockingQueue<Message> list_msg;
@@ -102,10 +85,6 @@ public class Session implements Runnable {
     public int topnap;
     public long coin;
     public int version;
-
-    // --- MEMBERSHIP ---
-    public byte membership_type = 0; // 0=None, 1=7Day, 2=30Day
-    public long membership_expire = 0L; // Unix timestamp milliseconds
 
     public HashMap<String, Object> state = new HashMap<>();
 
@@ -169,33 +148,22 @@ public class Session implements Runnable {
     }
 
     public void SaveIP() {
-        String sql = "UPDATE `account` SET `last_ip` = '" + this.ip + "' WHERE id = " + this.id + ";";
-        try (Connection connection = SQL.gI().getConnection(); Statement ps = connection.createStatement()) {
-            if (ps.executeUpdate(sql) > 0) {
-                connection.commit();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            // return false;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        SQLHelper.update("account")
+                .where("id", this.id)
+                .set("last_ip", this.ip);
     }
 
     private void disconnect() {
-        // FIX: make disconnect() idempotent/thread-safe. See the comment on
-        // the `disconnecting` field above for why this is needed.
+
         if (!disconnecting.compareAndSet(false, true)) {
             return;
         }
 
-        // Throttle login hanya untuk logout normal, bukan AFK
         if (this.p == null || !this.p.modeBot) {
             Manager.gI().time_login_client.put(this.user, (System.currentTimeMillis() + Manager.gI().time_login));
         }
 
-        //
-        // CheckDDOS.removeIp(ip);
+
         this.connected = false;
         this.sendd.interrupt();
         this.receiv.interrupt();
@@ -420,8 +388,6 @@ public class Session implements Runnable {
         }
         dos.flush();
         msg.cleanup();
-        // Util.logconsole("___send msg : " + msg.cmd + " - size : " + data.length + " :
-        // " + user, 1, msg.cmd);
     }
 
     private Message read_msg() throws IOException {
@@ -592,10 +558,7 @@ public class Session implements Runnable {
     }
 
     public boolean loadAccount() {
-
-        Boolean login;
-        try {
-            login = SQLHelper.selectFrom("account")
+         var login = SQLHelper.selectFrom("account")
                     .where("user", user)
                     .and("pass", pass)
                     .firstAs(rs -> {
@@ -607,23 +570,11 @@ public class Session implements Runnable {
                         this.lock = rs.getByte("lock") == 1;
                         return true;
                     });
-        } catch (core.DbUnavailableException e) {
-            // DB lagi sibuk/pool habis - ini BUKAN akun salah, jangan disamakan.
-            // Sebelumnya kondisi ini jatuh ke "Name pengguna atau password salah"
-            // karena query yang gagal balikin null, sama seperti akun tidak ketemu.
-            log.error("Login gagal karena database tidak tersedia untuk user: {}", user, e);
-            loginFail("Server sedang sibuk, silakan coba login kembali beberapa saat lagi.");
-            return false;
-        }
 
-        if (login == null || !login) {
+        if (!login) {
             loginFail("Name pengguna atau password salah");
-            log.info("Name pengguna atau password salah");
             return false;
         }
-
-        // Load membership
-        feature.membership.MembershipService.onLogin(this);
 
         long time_can_login = 0;
         if (Manager.gI().time_login_client.containsKey(this.user)) {

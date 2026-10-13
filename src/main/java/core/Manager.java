@@ -430,13 +430,6 @@ public class Manager {
             this.vxkc = new VXKC2();
 
 
-            for (GameMap[] maps : GameMap.entrys) {
-                for (GameMap map : maps) {
-                    if (map == null) continue;
-                    map.start_map();
-                }
-            }
-
             Log.gI().start_log();
 
         } catch (IOException e) {
@@ -1402,11 +1395,7 @@ public class Manager {
         vxmm.close();
         Log.gI().close_log();
         //
-        for (int i = 0; i < GameMap.entrys.size(); i++) {
-            for (int j = 0; j < GameMap.entrys.get(i).length; j++) {
-                GameMap.entrys.get(i)[j].stop_map();
-            }
-        }
+
         // instance = null;
     }
 

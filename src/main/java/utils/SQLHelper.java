@@ -820,7 +820,7 @@ public class SQLHelper {
             builder.orderBy = this.orderBy;
 
             String sql = builder.buildSQL();
-            return SQL.gI().selectOne(sql, rs -> mapper.map(rs), builder.whereParams.toArray());
+            return SQL.gI().selectOne(sql, mapper::map, builder.whereParams.toArray());
         }
 
         public <T> T firstAsModel(Class<T> modelClass) {
@@ -862,18 +862,7 @@ public class SQLHelper {
 
             String sql = builder.buildSQL();
 
-            return SQL.gI().selectOne(sql, rs -> {
-                JSONObject jsonObject = new JSONObject();
-                ResultSetMetaData metaData = rs.getMetaData();
-                int columnCount = metaData.getColumnCount();
-
-                for (int i = 1; i <= columnCount; i++) {
-                    String columnName = metaData.getColumnName(i);
-                    Object value = rs.getObject(i);
-                    jsonObject.put(columnName, value);
-                }
-                return jsonObject;
-            }, builder.whereParams.toArray());
+            return SQL.gI().selectOne(sql, SQLHelper::resultSetToJSON, builder.whereParams.toArray());
         }
 
         public JSONObject getJSONObject(String column) {

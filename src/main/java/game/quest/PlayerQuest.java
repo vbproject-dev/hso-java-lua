@@ -55,7 +55,7 @@ public class PlayerQuest {
 
     public void save(int playerId) {
         if (allQuest.isEmpty()) return;
-        boolean wasInterrupted = Thread.interrupted(); // prevent HikariCP InterruptedException on shutdown
+
         allQuest.forEach((id, quest) -> {
             try {
                 Map<String, Object> data = ModelMapper.toMap(quest);
@@ -81,7 +81,7 @@ public class PlayerQuest {
                         + " player_id=" + playerId + " : " + e.getMessage());
             }
         });
-        if (wasInterrupted) Thread.currentThread().interrupt();
+
     }
 
 }

@@ -53,7 +53,7 @@ local function createOtherMenu(session, itemIndex, item)
                     return
                 end
 
-                if not AuctionManager.isAllowed(item.id) then
+                if not AuctionManager.isAllowed(item) then
                     Service.notice(session, "Item ini tidak diperbolehkan untuk di lelang")
                     return
                 end

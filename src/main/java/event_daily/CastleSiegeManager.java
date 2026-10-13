@@ -26,6 +26,7 @@ import template.ItemTemplate3;
 import template.MainObject;
 import template.MobTemplate;
 import template.box_item_template;
+import utils.SQLHelper;
 
 public class CastleSiegeManager {
 
@@ -156,7 +157,7 @@ public class CastleSiegeManager {
             mob2.setBaseDamage(10_000);
 
             m.mobs = new MobInMap[]{mob, mob1, mob2};
-            m.start_map();
+
             GameMap.entrys.add(new GameMap[]{m});
         }
         MapData mapData = MapManager.getInstance().getMapData(87);
@@ -208,7 +209,7 @@ public class CastleSiegeManager {
             m.mobs[i].zone_id = 0;
             m.mobs[i].level = 1;
         }
-        m.start_map();
+
         GameMap.entrys.add(new GameMap[]{m});
     }
 
@@ -556,30 +557,6 @@ public class CastleSiegeManager {
         }
     }
 
-    public static void SaveData(PreparedStatement ps) {
-        try {
-            ps.clearParameters();
-            JSONArray jsarct = new JSONArray();
-            try {
-                for (String i : Manager.PlayersWinCThanh) {
-                    jsarct.add(i);
-                }
-            } catch (Exception e) {
-            }
-            ps.setString(1, jsarct.toJSONString());
-            ps.setString(2, String.valueOf(Manager.nameClanThue));
-            ps.setString(3, String.valueOf("chiem_thanh"));
-            ps.executeUpdate();
-            ps.clearParameters();
-            ps.setString(1, String.valueOf(Manager.thue));
-            ps.setString(2, String.valueOf(Manager.thue));
-            ps.setString(3, String.valueOf("thue"));
-            ps.executeUpdate();
-            ps.clearParameters();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     public static void LoadData(ResultSet rs) {
         try {

@@ -276,6 +276,7 @@ public class Player extends Body {
     public long premiumTeleExpireTime = 0; // waktu habis akses premium (epoch ms)
     public utils.Timer.TimerHandle premiumTeleTimer = null; // handle timer kick otomatis
 
+    public boolean isCombine = false;
     // UI
     @Getter
     @Setter
@@ -1153,7 +1154,7 @@ public class Player extends Body {
         if (!already_setup) {
             return;
         }
-        boolean wasInterrupted = Thread.interrupted(); // prevent HikariCP InterruptedException on shutdown
+
         try (Connection connection = SQL.gI().getConnection(); Statement ps = connection.createStatement()) {
             String a = "`level` = " + level;
             a += ",`exp` = " + exp;
@@ -1494,26 +1495,15 @@ public class Player extends Body {
                 connection.commit();
             }
             ps.close();
-            connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        // Save Fashion
-        // NOTE: harus dijalankan SEBELUM restore flag interrupt di bawah.
-        // Sebelumnya restore-nya ada di finally block di atas, jadi query
-        // fashion_setting ini jalan dengan interrupt flag yang sudah
-        // di-set lagi -> HikariCP langsung lempar InterruptedException
-        // ("Interrupted during connection acquisition") setiap kali ada
-        // disconnect normal, karena Session.disconnect() men-interrupt
-        // thread-nya sendiri sebelum manggil flush().
+
         SQLHelper
                 .update("fashion_setting")
                 .where("player_id", objectId)
                 .set(ModelMapper.toMap(fashionSetting)).execute();
-
-        if (wasInterrupted)
-            Thread.currentThread().interrupt();
     }
 
     public void change_new_date() {

@@ -48,7 +48,6 @@ public class Dungeon {
         GameMap temp = GameMap.get_map_dungeon(48);
         template = new GameMap(48, 0, mapData);
         template.mobs = new MobInMap[0];
-        template.start_map();
         template.d = this;
         time_live = System.currentTimeMillis();
         // index_mob = Manager.gI().size_mob;
@@ -225,7 +224,6 @@ public class Dungeon {
                     //
                     // p0.dungeon = null;
                 }
-                this.template.stop_map();
                 this.template.d = null;
                 DungeonManager.remove_list(this);
             } else if (this.state >= 8 && this.state <= 13) {

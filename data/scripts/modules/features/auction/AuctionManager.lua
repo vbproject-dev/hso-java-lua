@@ -94,8 +94,12 @@ function AuctionManager.load(cfg)
     end
 end
 
-function AuctionManager.isAllowed(id)
-    if AuctionManager.BLACKLIST[id] then
+function AuctionManager.isAllowed(item)
+    if AuctionManager.BLACKLIST[item.id] then
+        return false
+    end
+
+    if item.expiry_date > 0 then
         return false
     end
 
@@ -112,7 +116,7 @@ function AuctionManager.hasSlot(session)
     local hasMember = MemberManager.has(session.p.objectId)
     local max = hasMember and (AuctionManager.MAX_ITEM + 5) or AuctionManager.MAX_ITEM
     return AuctionManager.auctionItems:filter(function(item)
-        return item.playerId == session.p.objectId and item.status == 0
+        return item.playerId == session.p.objectId and item.status == AuctionManager.STATUS.ONSALE
     end):size() < max
 end
 
@@ -351,6 +355,27 @@ function AuctionManager.buy(session, auctionId)
     if not ok then
         log("[AuctionManager] Failed to delete auction %d: %s", auction.id, err)
         return
+    end
+
+    -- Get Player Name From DB
+    local player, err = findTable("player", { id = auction.playerId })
+
+    -- Save into history
+    ok, err = insertTable("auction_history", {
+        auction_id = auction.id,
+        seller_name = player and player.name or "Unknown",
+        buyer_name = session.p.name,
+        item = JSON.fromTable({
+            itemId = auction.itemId,
+            name = auction.itemName,
+            info = auction.itemInfo
+        }),
+        price = auction.price,
+        transaction_date = os.date("%Y-%m-%d %H:%M:%S")
+    })
+
+    if not ok then
+        log("[AuctionManager] Couldn't save into auction_history")
     end
 
     AuctionManager.auctionItems:remove(auction)

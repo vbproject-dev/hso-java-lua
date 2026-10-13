@@ -92,8 +92,9 @@ public class ServerManager implements Runnable {
                 session.init();
             }
         } catch (Exception e) {
-            if (running) e.printStackTrace();
+            e.printStackTrace();
         }
+
         System.out.println("-----------GAME EXIT SOCKET----------");
     }
 
@@ -107,6 +108,14 @@ public class ServerManager implements Runnable {
             int min = now.get(Calendar.MINUTE);
             int sec = now.get(Calendar.SECOND);
             int day = now.get(Calendar.DAY_OF_WEEK);
+
+            // update map
+            for (GameMap[] maps : GameMap.entrys) {
+                for (GameMap map : maps) {
+                    if (map == null) continue;
+                    map.onUpdate();
+                }
+            }
 
             // ===== Save data =====
             if (sec == 10) {

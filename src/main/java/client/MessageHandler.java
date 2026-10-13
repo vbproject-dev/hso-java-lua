@@ -704,9 +704,7 @@ public class MessageHandler {
             Player p0 = new Player(conn, id_player_login);
 
             if (p0.setup()) {
-                // synchronized (Session.client_entrys) {
-                //
-                // }
+
                 Session[] sessionSnapshot = Session.snapshotList();
                 for (int i = sessionSnapshot.length - 1; i >= 0; i--) {
                     Session s = sessionSnapshot[i];
@@ -725,33 +723,22 @@ public class MessageHandler {
                         }
                         conn.close();
                         s.close();
-                        // synchronized (Session.client_entrys) {
-                        // Session.client_entrys.remove(conn);
-                        // if(Session.client_entrys.get(i).id == conn.id)
-                        // Session.client_entrys.remove(i);
-                        // }
+
                         return;
                     }
                 }
-                // Jika ada player AFK dengan ID yang sama masih di map, hentikan botnya
+
                 stopAfkBotIfActive(p0.objectId, p0.map);
                 conn.p = p0;
                 conn.p.set_in4();
                 conn.p.setOnline();
                 conn.SaveIP();
-
-                // Claim kimcuong harian membership
-                feature.membership.MembershipService.claimDailyGem(p0);
-
                 MessageHandler.dataloginmap(conn);
             }
         }
     }
 
-    /**
-     * Hentikan AFK bot jika player dengan objectId yang sama masih aktif di map.
-     * Dipanggil saat player login kembali setelah mode AFK.
-     */
+
     private static void stopAfkBotIfActive(int objectId, game.map.GameMap playerMap) {
         try {
             // Cari di semua map — tidak pakai map_id karena field itu tidak diset dari DB

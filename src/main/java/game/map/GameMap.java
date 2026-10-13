@@ -23,7 +23,7 @@ import core.Util;
 import ev_he.MobCay;
 import event_daily.UseItemArena;
 import event_daily.Battlefield;
-import event_daily.DailyQuest;
+
 import client.io.Message;
 import client.io.Session;
 
@@ -38,7 +38,7 @@ import model.map.Vgo;
 import template.*;
 
 @Slf4j
-public class GameMap implements Runnable {
+public class GameMap {
 
     public static final List<GameMap[]> entrys = new ArrayList<>();
 
@@ -56,7 +56,7 @@ public class GameMap implements Runnable {
     // ada)
     public event_daily.KingCup kingCupRef;
     public final ItemMap[] itemDrop;
-    private final Thread mapthread;
+
     public MobInMap[] mobs;
     public static short head;
     public static short eye;
@@ -113,7 +113,6 @@ public class GameMap implements Runnable {
         this.maxplayer = (short) mapData.getMaxPlayer();
         this.maxzone = (byte) mapData.getMaxZone();
         this.itemDrop = new ItemMap[100];
-        this.mapthread = new Thread(this);
         this.players = new ArrayList<>();
         this.bots = new ArrayList<>();
         this.vgos = mapData.getWarpPoint();
@@ -171,65 +170,25 @@ public class GameMap implements Runnable {
         }
 
     }
+    public void onUpdate() {
+        try {
 
-    @Override
-    public void run() {
-        this.running = true;
-        long time1 = 0;
-        long time2 = 0;
-        long time3 = 0;
-        while (this.running) {
-            try {
-                time1 = System.currentTimeMillis();
-                update();
-                update_AI();
-
-                if (this.time_chat < System.currentTimeMillis()) {
-                    this.time_chat = System.currentTimeMillis() + 8000L;
-                    // auto_chat_npc();
-                }
-                if (GameMap.isSummonMap(this, true)) {
-                    updateClone();
-                }
-                if (Battlefield.gI().getStatus() == 2 && GameMap.isBattlefieldMap(this.mapId)) {
-                    // FIX: baris ini dulu memanggil Battlefield.gI().send_info(p0)
-                    // (sistem lama) tiap 5 detik untuk semua pemain di map. Tapi
-                    // info_house milik singleton lama itu TIDAK PERNAH diisi lagi
-                    // (start() lama sudah jadi dead code sejak diganti BTF baru),
-                    // jadi selalu null -> send_info() SELALU NullPointerException.
-                    // Exception ini memang ketangkep oleh try-catch di run(), tapi
-                    // efeknya serius: PlayerClone.update(this) di bawah ini (AI
-                    // "Penjaga" markas) jadi IKUT TIDAK PERNAH JALAN tiap kali NPE
-                    // ini kena, karena posisinya sesudah kode yang error dalam
-                    // blok if yang sama - jadi penjaga diam/nggak nyerang selama
-                    // battle. Sisa tick map (timing/sleep di bawah) juga ke-skip.
-                    // HUD info sekarang sudah dikirim benar oleh
-                    // BTF#sendBattlefieldInfo()/broadcastBattlefieldInfo(), jadi
-                    // panggilan send_info() lama ini dihapus, bukan cuma redundant
-                    // tapi memang selalu crash tiap dipanggil.
-                    PlayerClone.update(this);
-                }
-                if (this.mapId == 48 && d != null) {
-                    d.update();
-                }
-                time2 = System.currentTimeMillis();
-                time3 = (1_000L - (time2 - time1));
-                if (time3 > 0) {
-                    if (time3 < 20) {
-                        System.err.println("map_id " + this.mapId + " - zone " + (this.zoneId + 1) + " overload...");
-                    }
-
-                    try {
-                        Thread.sleep(time3);
-                    } catch (InterruptedException ignored) {
-
-                    }
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println(e.toString());
+            update();
+            update_AI();
+            if (GameMap.isSummonMap(this, true)) {
+                updateClone();
             }
+            if (Battlefield.gI().getStatus() == 2 && GameMap.isBattlefieldMap(this.mapId)) {
+
+                PlayerClone.update(this);
+            }
+            if (this.mapId == 48 && d != null) {
+                d.update();
+            }
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -997,14 +956,7 @@ public class GameMap implements Runnable {
         }
     }
 
-    public void start_map() {
-        this.mapthread.start();
-    }
 
-    public void stop_map() {
-        this.running = false;
-        this.mapthread.interrupt();
-    }
 
     public static Player get_player_by_name(String name) {
         name = Player.stripDisplayNamePrefix(name);

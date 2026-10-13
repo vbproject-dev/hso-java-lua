@@ -13,9 +13,30 @@
 local Service        = require("core.JavaClass").Service
 local MenuHelper     = require("modules.menu.MenuHelper")
 local AuctionManager = require("modules.features.auction.AuctionManager")
-
 local MailManager    = require("modules.features.mail.MailManager")
 
+local function createSub(session)
+    local childs = {}
+    local items = AuctionManager.getItems(session.p.objectId)
+    items:forEach(function(auction)
+        local name = auction.itemInfo.tier <= 0 and auction.itemName or
+            string.format("%s +%d", auction.itemName, auction.itemInfo.tier)
+        table.insert(childs, {
+            name = string.format("%s: %d gem", name, auction.price),
+            action = function()
+                AuctionManager.cancel(session, auction.id)
+            end
+        })
+    end)
+    table.insert(childs, {
+        name = "Batalkan Semua",
+        action = function()
+            AuctionManager.cancelAll(session)
+        end
+    })
+
+    return childs
+end
 
 return {
     onTalk = function(session, npcId)
@@ -29,9 +50,7 @@ return {
 
             MenuHelper.when(AuctionManager.hasItemOnSale(session), {
                 name = "Batalkan Penjualan",
-                action = function()
-                    AuctionManager.cancelAll(session)
-                end
+                children = createSub(session)
             }),
 
             {

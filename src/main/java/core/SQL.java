@@ -7,9 +7,13 @@ import java.util.stream.Collectors;
 
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 @Slf4j
 public class SQL {
+    private static class Holder {
+        private static final SQL INSTANCE = new SQL();
+    }
 
     public static boolean is_connected = false;
     private static SQL instance = null;
@@ -25,38 +29,32 @@ public class SQL {
         System.out.println(url);
         user = Manager.gI().mysql_user;
         pass = Manager.gI().mysql_pass;
+        HikariDataSource config = createHikariDataSource();
+        dataSource = new HikariDataSource(config);
+        SQL.is_connected = true;
+
+    }
+
+    private @NonNull HikariDataSource createHikariDataSource() {
         HikariDataSource config = new HikariDataSource();
         config.setJdbcUrl(url);
         config.setUsername(user);
         config.setPassword(pass);
         config.setAutoCommit(false);
-
         config.setConnectionTimeout(30_000L);
         config.setIdleTimeout(600_000);
         config.setKeepaliveTime(0);
         config.setMaxLifetime(1_800_000);
-        // Dinaikkan dari 15 -> 40. Pool 15 kehabisan koneksi (waiting sampai 50+)
-        // saat jam ramai, bikin query login/save gagal timeout.
-        // NOTE: pastikan MySQL `max_connections` di server DB cukup besar
-        // (minimal beberapa kali lipat dari nilai ini, karena proses lain juga
-        // mungkin konek ke DB yang sama).
         config.setMaximumPoolSize(40);
         config.setMinimumIdle(10);
-        // Bantu ketahuan di log kalau ada kode yang pegang koneksi kelamaan
-        // (nggak di-close), supaya lebih gampang investigasi ke depannya.
         config.setLeakDetectionThreshold(20_000L);
         config.setPoolName("HSO_pool");
-
-        dataSource = new HikariDataSource(config);
-        SQL.is_connected = true;
-        System.out.println("OPEN DataBase connect");
+        config.setAutoCommit(false);
+        return config;
     }
 
     public static SQL gI() {
-        if (instance == null) {
-            instance = new SQL();
-        }
-        return instance;
+        return Holder.INSTANCE;
     }
 
     public Connection getConnection() throws SQLException {
@@ -91,16 +89,6 @@ public class SQL {
         }
     }
 
-    /**
-     * Update multiple columns with Map of column-value pairs
-     */
-    /**
-     * Update multiple columns with Map of column-value pairs.
-     * Mendukung ekspresi RAW (dipakai oleh SQLHelper.UpdateBuilder#increment/decrement/multiply):
-     * jika value berupa String dan diawali "RAW:", nilai tsb ditaruh langsung di klausa SET
-     * (bukan sebagai bind parameter), contoh: "RAW:poin_isi_ulang_permata + 100000"
-     * -> SET `poin_isi_ulang_permata` = poin_isi_ulang_permata + 100000
-     */
     public boolean updateColumns(String table, Map<String, Object> updates,
                                  String whereClause, Object... whereParams) {
         if (updates == null || updates.isEmpty()) {
@@ -119,7 +107,7 @@ public class SQL {
                 })
                 .collect(Collectors.joining(", "));
 
-        String sql = "UPDATE " + table + " SET " + setClause + " WHERE " + whereClause;
+        String sql = "UPDATE %s SET %s WHERE %s".formatted(table, setClause, whereClause);
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -148,9 +136,6 @@ public class SQL {
         }
     }
 
-    /**
-     * Insert data into table
-     */
     public long insertInto(String table, Map<String, Object> values) {
         if (values == null || values.isEmpty()) {
             return -1;
@@ -161,7 +146,7 @@ public class SQL {
                 .map(k -> "?")
                 .collect(Collectors.joining(", "));
 
-        String sql = "INSERT INTO " + table + " (" + columns + ") VALUES (" + placeholders + ")";
+        String sql = "INSERT INTO %s (%s) VALUES (%s)".formatted(table, columns, placeholders);
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -193,11 +178,8 @@ public class SQL {
         }
     }
 
-    /**
-     * Delete rows with WHERE clause
-     */
     public boolean delete(String table, String whereClause, Object... whereParams) {
-        String sql = "DELETE FROM " + table + " WHERE " + whereClause;
+        String sql = "DELETE FROM %s WHERE %s".formatted(table, whereClause);
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -221,32 +203,10 @@ public class SQL {
         }
     }
 
-    /**
-     * Select query executor with callback pattern
-     * Ensures proper resource cleanup
-     *
-     * @param sql SQL query string
-     * @param handler Function to process ResultSet and return result
-     * @param params Query parameters
-     * @return Result from handler, or null if the query ran but found nothing / failed after connecting
-     * @throws DbUnavailableException if a connection could not be acquired from the pool
-     *         (pool exhausted, timeout, interrupted). Callers that need to tell this apart
-     *         from "no data found" (e.g. login) should catch this specifically.
-     */
     public <T> T select(String sql, ResultSetHandler<T> handler, Object... params) {
-        Connection conn;
-        try {
-            conn = getConnection();
-        } catch (SQLException e) {
-            // Gagal DAPAT koneksi dari pool (pool exhausted/timeout/interrupted).
-            // Ini bukan "data kosong" - jangan return null di sini, karena pemanggil
-            // (mis. cek login/akun) bisa salah mengira akun tidak ada / password salah,
-            // padahal DB-nya yang lagi sibuk.
-            log.error("Failed to acquire DB connection for select: {}", sql, e);
-            throw new DbUnavailableException("Gagal mendapatkan koneksi database: " + sql, e);
-        }
 
-        try (Connection c = conn; PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             int paramIndex = 1;
             for (Object param : params) {
                 ps.setObject(paramIndex++, param);
@@ -257,14 +217,18 @@ public class SQL {
             }
 
         } catch (SQLException e) {
-            log.error("Error executing select: {}", sql, e);
+            log.error(
+                    "Error executing select: {} [SQLState={}, ErrorCode={}]",
+                    sql,
+                    e.getSQLState(),
+                    e.getErrorCode(),
+                    e
+            );
+
             return null;
         }
     }
 
-    /**
-     * Select query that returns list of results
-     */
     public <T> List<T> selectList(String sql, RowMapper<T> mapper, Object... params) {
         return select(sql, rs -> {
             List<T> results = new ArrayList<>();
@@ -275,9 +239,7 @@ public class SQL {
         }, params);
     }
 
-    /**
-     * Select query that returns single result
-     */
+
     public <T> T selectOne(String sql, RowMapper<T> mapper, Object... params) {
         return select(sql, rs -> {
             if (rs.next()) {
@@ -287,19 +249,14 @@ public class SQL {
         }, params);
     }
 
-    /**
-     * Functional interface for handling ResultSet
-     */
     @FunctionalInterface
     public interface ResultSetHandler<T> {
         T handle(ResultSet rs) throws SQLException;
     }
 
-    /**
-     * Functional interface for mapping a single row
-     */
     @FunctionalInterface
     public interface RowMapper<T> {
         T mapRow(ResultSet rs) throws SQLException;
     }
+
 }

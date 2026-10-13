@@ -12,15 +12,12 @@ require "core.Class"
 require "core.Constants"
 require "core.Logger"
 require "core.LuaBridge"
-local WebServer = require "web.WebServer"
-
 
 
 local MySQL           = require "core.MySQL"
 local NpcRegistry     = require "modules.npc.NpcRegistry"
 local HandlerRegistry = require "modules.handlers.HandlerRegistry"
 local GameData        = require "data.GameData"
-
 
 
 
@@ -62,8 +59,8 @@ function Main.onLoad()
     })
 
     -- Web Setup
-    WEB = WebServer.new()
-    WEB:init()
+    -- WEB = WebServer.new()
+    -- WEB:init()
 end
 
 function Main.onUpdate(dt)
@@ -72,17 +69,19 @@ function Main.onUpdate(dt)
     if MYSQL_ELAPSED >= MYSQL_PING_INTERVAL then
         MySQL.instance():ping()
         MYSQL_ELAPSED = 0
+        local memoryKB = collectgarbage("count")
+        log("[Lua GC] Memory: %.2f MB", memoryKB / 1024)
     end
 
-    if WEB then
-        WEB:pollEvents()
-    end
+    -- if WEB then
+    --     WEB:pollEvents()
+    -- end
 end
 
 function Main.onDestroy()
-    if WEB then
-        WEB:stop()
-    end
+    -- if WEB then
+    --     WEB:stop()
+    -- end
 
     MySQL.instance():close()
 end

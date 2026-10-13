@@ -23,6 +23,8 @@ import event_daily.Wedding;
 
 
 import game.map.MapService;
+import utils.JsonUtil;
+import utils.SQLHelper;
 
 public class SaveData {
 
@@ -30,85 +32,52 @@ public class SaveData {
     public synchronized static void process() {
         if(Manager.isServerTest)
             return;
-        // ── Hapus semua sesi aktif dari DB (server sedang shutdown/restart) ──
-        // Baris yang tersisa sebelum ini = player yang online saat server mati.
-        // clearAll() membersihkan tabel agar saat server naik lagi, tabel kosong.
-        // SessionLog.gI().clearAll();
-        // ──────────────────────────────────────────────────────────────────────
+
         long time_check = System.currentTimeMillis();
         Manager.gI().mine.update();
-        // ✅ Pakai HikariCP pool + try-with-resources → koneksi dijamin ditutup walau ada exception
-        try (Connection conn = SQL.gI().getConnection()) {
-            conn.setAutoCommit(false); // aktifkan transaction
 
+        try (Connection conn = SQL.gI().getConnection()) {
+            conn.setAutoCommit(false);
 
             // clan
             BXH.BXH___GUILD.clear();
             BXH.BXH___GUILD.addAll(Guild.get_all_clan());
-            BXH.BXH___GUILD.sort(new Comparator<Guild>() {
-                @Override
-                public int compare(Guild o1, Guild o2) {
-                    int com1 = Short.compare(o2.level, o1.level);
-                    if (com1 != 0) {
-                        return com1;
-                    }
-                    return (o1.exp >= o2.exp) ? -1 : 1;
-                }
+            BXH.BXH___GUILD.sort(Comparator
+                    .comparingInt((Guild g) -> g.level).reversed()
+                    .thenComparing(Comparator.comparingLong((Guild g) -> g.exp).reversed()));
+
+            // Save Guild Data
+
+            Guild.entrys.forEach(guild -> {
+                SQLHelper.update("clan").where("name", guild.name)
+                        .set("name", guild.name)
+                        .set("level", guild.level)
+                        .set("exp", guild.exp)
+                        .set("slogan", guild.slogan)
+                        .set("rule", guild.rule)
+                        .set("mems",  Guild.flush_mem_json(guild.members))
+                        .set("item",   Guild.flush_item_json(guild.clanItems))
+                        .set("notice", guild.notice)
+                        .set("vang", guild.gold)
+                        .set("kimcuong", guild.gems)
+                        .set("icon", guild.icon)
+                        .set("max_mem", guild.maxMember);
             });
-            PreparedStatement ps = conn.prepareStatement(
-                    "UPDATE `clan` SET `level` = ?, `exp` = ?, `slogan` = ?, `rule` = ?, `mems` = ?, `item` = ?, `notice` = ?, `vang` = ?, `kimcuong` = ?, `icon` = ?, `max_mem` = ? WHERE `name` = ?;");
-            // clan
-            List<Guild> list_to_remove = new ArrayList<>();
-            for (int i = 0; i < Guild.entrys.size(); i++) {
-                Guild guild = Guild.entrys.get(i);
-                if (guild.members.size() < 1) {
-                    list_to_remove.add(guild);
-                    Guild.entrys.remove(guild);
-                    i--;
-                } else {
-                    ps.clearParameters();
-                    ps.setInt(1, guild.level);
-                    ps.setLong(2, guild.exp);
-                    ps.setNString(3, guild.slogan );
-                    ps.setNString(4, guild.rule);
-                    ps.setNString(5, Guild.flush_mem_json(guild.members));
-                    ps.setNString(6, Guild.flush_item_json(guild.clanItems));
-                    ps.setNString(7, guild.notice);
-                    ps.setLong(8, guild.get_vang());
-                    ps.setInt(9, guild.get_ngoc());
-                    ps.setInt(10, guild.icon);
-                    ps.setInt(11, guild.maxMember);
-                    ps.setNString(12, guild.name);
-                    ps.executeUpdate();
-//                    ps.addBatch();
-//                    if (i % 50 == 0) {
-//                        ps.executeBatch();
-//                    }
-                }
-            }
-//            ps.executeBatch();
-            //
-            // save chiến trường
-            ps.close();
-            ps = conn.prepareStatement("UPDATE `config_server` SET `data1` = ?,`data2` = ? WHERE `name` = ?;");
-            CastleSiegeManager.SaveData(ps);
-            
-            ps.close();
-            ps = conn.prepareStatement("DELETE FROM `clan` WHERE `name` = ?;");
-            for (int i = 0; i < list_to_remove.size(); i++) {
-                Guild guild = list_to_remove.get(i);
-                ps.clearParameters();
-                ps.setNString(1, guild.name);
-                ps.executeUpdate();
-//                ps.addBatch();
-//                if (i % 50 == 0) {
-//                    ps.executeBatch();
-//                }
-            }
-            ps.close();
-            // FIX: WHERE pakai id (bukan name JSON), setString (bukan setNString/charset mismatch)
-            // FIX: pakai Wedding.serializeRingItem agar format selalu konsisten dengan loadAllFromDB
-            ps = conn.prepareStatement("UPDATE `wedding` SET `item` = ? WHERE `id` = ?;");
+
+            // Save Wedding
+            Wedding.list.forEach(w -> SQLHelper.update("wedding").where("id", w.id)
+                    .set("item", JsonUtil.array(
+                            w.exp,
+                            w.it.color,
+                            w.it.tier,
+                            w.it.op.stream()
+                                    .map(op -> JsonUtil.array(op.id, op.getParam(0)))
+                                    .collect(com.google.gson.JsonArray::new,
+                                            com.google.gson.JsonArray::add,
+                                            (a, b) -> b.forEach(a::add))
+                    ).toString()));
+
+            var ps = conn.prepareStatement("UPDATE `wedding` SET `item` = ? WHERE `id` = ?;");
             for (int i = 0; i < Wedding.list.size(); i++) {
                 Wedding temp = Wedding.list.get(i);
                 ps.clearParameters();
@@ -117,21 +86,9 @@ public class SaveData {
                 ps.executeUpdate();
             }
             ps.close();
-            // FIX INSIDEN PRODUKSI: dulu conn.commit() cuma dipanggil SEKALI di paling
-            // akhir method ini (setelah loop flush SEMUA player online + query rebuild
-            // leaderboard yang berat). Akibatnya row lock di tabel `clan`/`wedding` yang
-            // di-UPDATE di atas TERTAHAN sepanjang seluruh proses save ini (bisa
-            // berdetik-detik dengan puluhan player online). Selama itu, setiap
-            // Wedding.saveItemBlocking() real-time (dipicu combat, exp cincin naik)
-            // yang mencoba UPDATE baris wedding yang sama langsung nyangkut nunggu
-            // lock sampai timeout ("Lock wait timeout exceeded") -- dan tiap percobaan
-            // yang nyangkut itu menahan SATU koneksi dari pool (HikariCP, max 40)
-            // sampai gagal. Kejadian berulang-ulang dalam waktu singkat bikin pool
-            // habis total, dan bahkan LOGIN PLAYER BARU ikut gagal (Player.setup gagal
-            // ambil koneksi). Commit di sini melepas lock guild/wedding/clan-delete
-            // SEGERA setelah batch masing-masing selesai, sebelum loop flush player
-            // yang lambat itu mulai, jadi jendela kontensinya jauh lebih pendek.
+
             conn.commit();
+
             // flush player
             String query
                     = "UPDATE `player` SET `level` = ?, `exp` = ?, `site` = ?, `body` = ?, `eff` = ?, `friend` = ?, `skill` = ?, `item4` = ?, "
@@ -150,11 +107,7 @@ public class SaveData {
                         {
                             ps.clearParameters();
                             Player p0 = gameMap0.players.get(i1);
-                            // Mode AFK: socket tertutup tapi player masih di map — tetap simpan
-                            if (p0.modeBot) {
-                                p0.flush();
-                                continue;
-                            }
+
                             if(p0.conn == null || p0.conn.socket == null || p0.conn.socket.isClosed() || !p0.conn.connected)
                             {
                                 MapService.leave(gameMap0, p0);
@@ -163,7 +116,6 @@ public class SaveData {
                             p0.flush();
                         }catch(Exception ee){
                             Log.gI().addLogServer("save_data", ee.getMessage());
-                            ee.printStackTrace();
                         }
                     }
                 }

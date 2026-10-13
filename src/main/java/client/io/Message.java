@@ -17,7 +17,6 @@ public class Message implements AutoCloseable {
 	private byte[] data;
 
 
-
 	public Message(int cmd) {
 		this.cmd = (byte) cmd;
 		this.os = new ByteArrayOutputStream();
@@ -61,6 +60,10 @@ public class Message implements AutoCloseable {
 		}
 		if (dos != null) {
 			dos.close();
+		}
+
+		if (data != null) {
+			data = null;
 		}
 	}
 

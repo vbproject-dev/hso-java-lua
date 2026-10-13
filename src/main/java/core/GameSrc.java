@@ -784,6 +784,21 @@ public class GameSrc {
     public static void replace_item_process(Player p, Message m2) throws IOException {
         byte type = m2.reader().readByte();
         short id = m2.reader().readShort();
+
+        if (p.isCombine) {
+            Item3 item = p.item.bag3[id];
+            if (item == null) {
+                Service.send_notice_box(p.conn, "Item tidak ditemukan");
+                return;
+            }
+
+            System.out.println(String.format("item1 %d item2: %d", p.item_replace, p.item_replace2));
+            if (item.tier < 15) {
+                combineItem(p, type, id);
+            }
+            return;
+        }
+
         if (type == 0) {
             if (id < 0 || id >= p.item.bag3.length) return;
             if (p.item.bag3[id] != null && !check_item_can_rebuild(p.item.bag3[id].type)) {
@@ -858,6 +873,63 @@ public class GameSrc {
             int fee = 100 * p.item.bag3[p.item_replace].tier;
             Service.send_box_input_yesno(p.conn, 122,
                     "Proses transfer akan memakan biaya " + fee + " permata, apakah Anda yakin ingin melanjutkan?");
+        }
+    }
+
+    private static void combineItem(Player p,byte  type, short id) throws IOException {
+        if (type == 0)  {
+            if (p.item_replace == -1) {
+                p.item_replace = id;
+            }else if (p.item_replace2 == -1){
+                if (p.item.bag3[id].id !=  p.item.bag3[p.item_replace].id) {
+                    Service.send_notice_box(p.conn, "Harus jenis item yang sama");
+                    return;
+                }
+                p.item_replace2 = id;
+            }
+
+            Message m = new Message(73);
+            m.writer().writeByte(0);
+            m.writer().writeShort(id);
+            if (p.item_replace2 == -1) {
+                m.writer().writeByte(1);
+            } else {
+                m.writer().writeByte(0);
+            }
+            p.conn.addmsg(m);
+        } else if (type == 1 ) {
+            if (p.item_replace2 == -1) {
+                Service.send_notice_box(p.conn, "Pilih item terlebih dahulu");
+                return;
+            }
+
+            p.item.bag3[p.item_replace2] = null;
+            p.item.bag3[p.item_replace].updateName();
+
+
+            p.item.bag3[p.item_replace].tier++;
+            Service.send_notice_box(p.conn, "Combine Berhasil!");
+
+
+            p.item.updateBag();
+
+            Message m3 = new Message(73);
+            m3.writer().writeByte(0);
+            m3.writer().writeShort(p.conn.p.item_replace2);
+            m3.writer().writeByte(0);
+            p.conn.addmsg(m3);
+            m3.cleanup();
+            //
+            m3 = new Message(73);
+            m3.writer().writeByte(0);
+            m3.writer().writeShort(p.conn.p.item_replace);
+            m3.writer().writeByte(1);
+            p.conn.addmsg(m3);
+            m3.cleanup();
+            //
+
+            p.item_replace2 = -1;
+            p.item_replace = -1;
         }
     }
 

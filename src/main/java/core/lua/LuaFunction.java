@@ -1,12 +1,7 @@
 package core.lua;
-public final class LuaFunction {
-    private final long reference;
 
+public final class LuaFunction extends LuaHandle {
     public LuaFunction(long reference) {
-        this.reference = reference;
-    }
-
-    public long getReference() {
-        return reference;
+        super(reference);
     }
 }

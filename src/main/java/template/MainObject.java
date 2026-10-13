@@ -1075,12 +1075,12 @@ public class MainObject {
                 Player pMount = (Player) ObjAtk;
                 Item3 wornMount = pMount.item != null ? pMount.item.wear[21] : null;
                 Integer mountEffId = wornMount != null ? MOUNT_ATTACK_EFF_MAP.get(wornMount.id) : null;
-                if (MOUNT_ATTACK_EFF_DEBUG) {
-                    System.out.println("[MountEff] wear21=" + (wornMount != null ? wornMount.id : "null")
-                            + " mountType=" + (pMount.mount != null ? pMount.mount.getType() : "null")
-                            + " mountPart=" + (pMount.mount != null ? pMount.mount.getPart() : "null")
-                            + " effId=" + mountEffId);
-                }
+//                if (MOUNT_ATTACK_EFF_DEBUG) {
+//                    System.out.println("[MountEff] wear21=" + (wornMount != null ? wornMount.id : "null")
+//                            + " mountType=" + (pMount.mount != null ? pMount.mount.getType() : "null")
+//                            + " mountPart=" + (pMount.mount != null ? pMount.mount.getPart() : "null")
+//                            + " effId=" + mountEffId);
+//                }
                 if (mountEffId != null) {
                     long now = System.currentTimeMillis();
                     if (now >= pMount.mountAttackEff_nextAllowed) {

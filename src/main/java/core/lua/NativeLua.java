@@ -18,7 +18,7 @@ public final class NativeLua {
 
     public static native boolean isLoaded();
     public static native void destroy();
-
+    static native void unref(long reference);
     private NativeLua() {
     }
 }

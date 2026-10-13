@@ -5,6 +5,7 @@ import client.FashionSetting;
 import client.Pet;
 import client.Player;
 import core.*;
+import core.lua.NativeLua;
 import event_daily.MoLy;
 import client.io.Message;
 import client.io.Session;
@@ -39,6 +40,7 @@ import template.ItemTemplate4;
 import topup.Status;
 import topup.TopupType;
 import utils.SQLHelper;
+import utils.Timer;
 
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
@@ -1364,6 +1366,21 @@ public class MenuManager {
                             }).build();
                     p.openInput(dialog);
                 })
+                .item("Reload Lua Scripts", p-> {
+                    if (NativeLua.isLoaded()) {
+                        NativeLua.destroy();
+                    }
+                    Timer.schedule(() -> {
+
+                        if (!NativeLua.initialize()) {
+                            log.info("Native Lua failed to load!");
+                            return;
+                        }
+                        NativeLua.load("data/scripts/Main.lua");
+
+                        p.sendNoticeBox("Script reloaded");
+                    }, 3000);
+                })
                 .item("Back", "Kembali", MenuManager::navigateBack)
                 .build();
     }
@@ -1898,7 +1915,15 @@ public class MenuManager {
                 .item("Gabung permata", p -> Service.send_box_UI(p.conn, 34))
                 .item("Pasang permata", p -> Service.send_box_UI(p.conn, 35))
                 .item("Buat lubang", p -> Service.send_box_UI(p.conn, 36))
-                .item("Transformasi", p -> Service.send_box_UI(p.conn, 19))
+                .item("Transformasi", p -> {
+                    p.isCombine = false;
+                    Service.send_box_UI(p.conn, 19);
+                })
+//                .item("Combine", p -> {
+//                    p.isCombine = true;
+//                    p.item_replace = -1;
+//                    p.item_replace2 = -1;
+//                    Service.send_box_UI(p.conn, 19);})
                 .item("Gabung material medal", p -> Service.send_box_UI(p.conn, 24))
                 .item("Reload Wedding", p -> {
                     event_daily.Wedding.loadAllFromDB();
