@@ -1,21 +1,22 @@
 package client.io;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
-public class Message implements AutoCloseable {
+@Slf4j
+public class Message {
 	public byte cmd;
 	private ByteArrayOutputStream os;
 	private DataOutputStream dos;
 	private ByteArrayInputStream is;
 	private DataInputStream dis;
 
-	private byte[] data;
-
+	private DataInputStream isCopy;
 
 	public Message(int cmd) {
 		this.cmd = (byte) cmd;
@@ -25,7 +26,7 @@ public class Message implements AutoCloseable {
 
 	public Message(byte cmd, byte[] data) {
 		this.cmd = cmd;
-		this.data = data.clone();
+		this.isCopy = new DataInputStream(new ByteArrayInputStream(data.clone()));
 		this.is = new ByteArrayInputStream(data);
 		this.dis = new DataInputStream(is);
 	}
@@ -39,9 +40,7 @@ public class Message implements AutoCloseable {
 	}
 
 	public DataInputStream copyReader() {
-		return new DataInputStream(
-				new ByteArrayInputStream(data)
-		);
+		return isCopy;
 	}
 
 	public byte[] getData() {
@@ -49,28 +48,14 @@ public class Message implements AutoCloseable {
 	}
 
 	public void cleanup() throws IOException {
-		if (os != null) {
-			os.close();
-		}
-		if (is != null) {
-			is.close();
-		}
-		if (dis != null) {
-			dis.close();
-		}
-		if (dos != null) {
-			dos.close();
-		}
+		if (os != null) os.close();
+		if (is != null) is.close();
+		if (dis != null) dis.close();
+		if (dos != null) dos.close();
+		if (isCopy != null) isCopy.close();
 
-		if (data != null) {
-			data = null;
-		}
 	}
-
 	public int getCmd() {return cmd;}
 
-    @Override
-    public void close() throws Exception {
-        cleanup();
-    }
+
 }

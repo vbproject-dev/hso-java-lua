@@ -11,12 +11,17 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 
 @Slf4j
 public class SQL {
+
+    /** One SQL statement and the parameter rows to run it with (several rows = one JDBC batch). */
+    public record Command(String sql, List<Object[]> rows) {
+    }
+
     private static class Holder {
         private static final SQL INSTANCE = new SQL();
     }
 
     public static boolean is_connected = false;
-    private static SQL instance = null;
+
     private HikariDataSource dataSource;
     public final String url;
     private final String user;
@@ -25,12 +30,12 @@ public class SQL {
 
     public SQL() {
         url = "jdbc:mysql://" + Manager.gI().mysql_host + ":"+Manager.gI().mysql_port +"/" + Manager.gI().mysql_database
-                + "?autoReconnect=true&useUnicode=yes&characterEncoding=UTF-8";
+                + "?autoReconnect=true&useUnicode=yes&characterEncoding=UTF-8&rewriteBatchedStatements=true";
         System.out.println(url);
         user = Manager.gI().mysql_user;
         pass = Manager.gI().mysql_pass;
-        HikariDataSource config = createHikariDataSource();
-        dataSource = new HikariDataSource(config);
+
+        dataSource = createHikariDataSource();
         SQL.is_connected = true;
 
     }
@@ -49,7 +54,7 @@ public class SQL {
         config.setMinimumIdle(10);
         config.setLeakDetectionThreshold(20_000L);
         config.setPoolName("HSO_pool");
-        config.setAutoCommit(false);
+
         return config;
     }
 
@@ -83,9 +88,45 @@ public class SQL {
 
             return rows > 0;
 
-        } catch (Exception e) {
+        } catch (SQLException e) {
             log.error("Error executing update: {}", sql, e);
             return false;
+        }
+    }
+
+
+    public boolean executeTransaction(Collection<Command> commands) {
+        try (Connection conn = getConnection()) {
+            boolean autoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                for (Command command : commands) {
+                    run(conn, command);
+                }
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(autoCommit);
+            }
+        } catch (SQLException e) {
+            log.error("Transaction failed ({} commands)", commands.size(), e);
+            return false;
+        }
+    }
+
+    private void run(Connection conn, Command command) throws SQLException {
+        if (command.rows().isEmpty()) return;
+        try (PreparedStatement ps = conn.prepareStatement(command.sql())) {
+            for (Object[] row : command.rows()) {
+                for (int i = 0; i < row.length; i++) {
+                    ps.setObject(i + 1, row[i]);
+                }
+                ps.addBatch();
+            }
+            ps.executeBatch();
         }
     }
 

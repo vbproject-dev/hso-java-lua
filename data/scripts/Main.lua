@@ -12,6 +12,7 @@ require "core.Class"
 require "core.Constants"
 require "core.Logger"
 require "core.LuaBridge"
+local WebServer = require "web.WebServer"
 
 
 local MySQL           = require "core.MySQL"
@@ -26,7 +27,7 @@ DEBUG                     = true
 local WEB                 = nil
 
 local MYSQL_ELAPSED       = 0
-local MYSQL_PING_INTERVAL = 300
+local MYSQL_PING_INTERVAL = 500
 
 function Main.onLoad()
     -- Setup MYSQL
@@ -58,9 +59,9 @@ function Main.onLoad()
         { module = "modules.handlers.CommonHandler" }
     })
 
-    -- Web Setup
-    -- WEB = WebServer.new()
-    -- WEB:init()
+    --Web Setup
+    WEB = WebServer.new()
+    WEB:init()
 end
 
 function Main.onUpdate(dt)
@@ -69,19 +70,34 @@ function Main.onUpdate(dt)
     if MYSQL_ELAPSED >= MYSQL_PING_INTERVAL then
         MySQL.instance():ping()
         MYSQL_ELAPSED = 0
+
         local memoryKB = collectgarbage("count")
-        log("[Lua GC] Memory: %.2f MB", memoryKB / 1024)
+        local memory
+        local unit
+
+        if memoryKB >= 1024 * 1024 then
+            memory = memoryKB / (1024 * 1024)
+            unit = "GB"
+        elseif memoryKB >= 1024 then
+            memory = memoryKB / 1024
+            unit = "MB"
+        else
+            memory = memoryKB
+            unit = "KB"
+        end
+
+        log("[LUA MEM USED] : %.2f %s", memory, unit)
     end
 
-    -- if WEB then
-    --     WEB:pollEvents()
-    -- end
+    if WEB then
+        WEB:pollEvents()
+    end
 end
 
 function Main.onDestroy()
-    -- if WEB then
-    --     WEB:stop()
-    -- end
+    if WEB then
+        WEB:stop()
+    end
 
     MySQL.instance():close()
 end

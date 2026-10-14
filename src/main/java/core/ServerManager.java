@@ -220,8 +220,17 @@ public class ServerManager implements Runnable {
             SessionManager.checkBandWidth();
 
             Runtime rt = Runtime.getRuntime();
-            long usedMb = (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024);
-            System.out.println("[MEMORY] Used Heap: " + usedMb + " MB");
+
+            long usedMb = (rt.totalMemory() - rt.freeMemory()) / 1048576;
+            long committedMb = rt.totalMemory() / 1048576;
+            long maxMb = rt.maxMemory() / 1048576;
+
+            System.out.printf(
+                    "[MEMORY] Used Heap: %d MB | Committed: %d MB | Max: %d MB%n",
+                    usedMb,
+                    committedMb,
+                    maxMb
+            );
 
         } catch (Exception e) {
             e.printStackTrace();

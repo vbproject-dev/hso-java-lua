@@ -15,6 +15,7 @@ local Service         = require("core.JavaClass").Service
 
 local LuaBridge       = {}
 
+
 function LuaBridge.onMessage(session, msg)
     local handler = HandlerRegistry.get(msg.cmd)
 
@@ -30,12 +31,13 @@ end
 
 function LuaBridge.onTalk(session, npcId)
     return try(function()
+        session.state:remove("auction")
         local script = NpcRegistry.get(npcId)
 
         if not script then
             return false
         end
-        session.state:put("auction", false)
+
         return script.onTalk(session, npcId)
     end)
 end

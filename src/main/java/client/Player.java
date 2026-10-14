@@ -9,7 +9,12 @@ import java.time.Instant;
 import java.util.*;
 import java.util.Date;
 import java.util.Map.Entry;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
+import com.google.gson.JsonArray;
 import core.*;
 import game.guild.Guild;
 import game.items.ItemManager;
@@ -49,6 +54,9 @@ import template.Pet_di_buon_manager;
 import template.Player_store;
 import template.Skill;
 import utils.SQLHelper;
+
+import static utils.JsonUtil.array;
+import static utils.JsonUtil.toJson;
 
 @Slf4j
 public class Player extends Body {
@@ -1504,6 +1512,122 @@ public class Player extends Body {
                 .update("fashion_setting")
                 .where("player_id", objectId)
                 .set(ModelMapper.toMap(fashionSetting)).execute();
+    }
+
+    public void saveData() {
+
+            long now = System.currentTimeMillis();
+            Predicate<Item3[]> purge = slots -> {
+                boolean removed = false;
+                for (int i = 0; i < slots.length; i++) {
+                    Item3 it = slots[i];
+                    if (it != null && it.expiry_date != 0 && now > it.expiry_date) {
+                        slots[i] = null;
+                        removed = true;
+                    }
+                }
+                return removed;
+            };
+
+            boolean bagExpired = purge.test(item.bag3), boxExpired = purge.test(item.box3), wearExpired = purge.test(item.wear);
+            try {
+                if (bagExpired) conn.p.item.charInventory(3);
+                if (boxExpired) conn.p.item.char_chest(3);
+                if (wearExpired) {
+                    item.charInventory(3);
+                    fashion = PartFashion.getPart(this);
+                    Service.sendPlayerWear(this);
+                    Service.sendMainCharInfo(this);
+                    MapService.broadcastMainCharInfo(map, this);
+                }
+            } catch (IOException ignored) {
+
+            }
+
+
+            Function<Item3, List<JsonArray>> options = it -> it.op.stream().map(o -> array(o.id, o.getParam(0))).toList();
+            Function<Item3, JsonArray> bagItem = it -> array(it.id, it.clazz, it.type, it.level, it.icon, it.color, it.part,
+                    it.islock ? 1 : 0, it.tier, options.apply(it), it.time_use, it.tierStar, it.expiry_date);
+            BiFunction<Collection<Item47>, Integer, List<JsonArray>> stacks = (items, category) -> items.stream()
+                    .filter(it -> it.category == category)
+                    .map(it -> array(it.id, it.quantity))
+                    .toList();
+
+            SQLHelper.update("player").where("id", objectId)
+                    .set("level", level)
+                    .set("exp", exp)
+                    .set("typeexp", type_exp)
+                    .set("date", date.toString())
+                    .set("site", toJson(isdie || GameMap.is_map_cant_save_site(map.mapId)
+                            ? array(1, 432, 354) : array(map.mapId, x, y)))
+                    .set("body", toJson(array(head, eye, hair)))
+                    .set("skill", toJson(Arrays.copyOf(skillPoint, 21)))
+                    .set("eff", toJson(effectDefault.stream()
+                            .filter(e -> e.id == -126 || e.id == -125)
+                            .map(e -> array(e.id, e.param, e.time - now)) // remaining time
+                            .toList()))
+                    .set("friend", toJson(list_friend.stream()
+                            .map(f -> array(f.name, f.level, f.head, f.hair, f.eye,
+                                    f.itemwear.stream().map(p -> array(p.type, p.part)).toList()))
+                            .toList()))
+                    .set("pet", toJson(mypet.stream()
+                            .map(p -> array(p.level, p.type, p.spriteImage, p.nframe, p.color, p.grown, p.maxgrown,
+                                    p.point1, p.point2, p.point3, p.point4, p.maxpoint, p.exp,
+                                    p.is_follow ? 1 : 0, p.is_hatch ? 1 : 0, p.time_born,
+                                    p.op.stream().map(o -> array(o.id, o.value, o.maxValue)).toList(), p.expiry_date))
+                            .toList()))
+                    // bag
+                    .set("item3", toJson(Arrays.stream(item.bag3).filter(Objects::nonNull).map(bagItem).toList()))
+                    .set("item4", toJson(stacks.apply(item.bag47, 4)))
+                    .set("item7", toJson(stacks.apply(item.bag47, 7)))
+                    .set("itemwear", toJson(IntStream.range(0, item.wear.length)
+                            .filter(slot -> item.wear[slot] != null)
+                            .mapToObj(slot -> {
+                                Item3 it = item.wear[slot];
+                                return array(it.id, it.clazz, it.type, it.level, it.icon, it.color, it.part,
+                                        it.tier, options.apply(it), slot, it.tierStar, it.expiry_date);
+                            })
+                            .toList()))
+                    // chest
+                    .set("itembox3", toJson(Arrays.stream(item.box3).filter(Objects::nonNull).map(bagItem).toList()))
+                    .set("itembox4", toJson(stacks.apply(item.box47, 4)))
+                    .set("itembox7", toJson(stacks.apply(item.box47, 7)))
+
+                    .set("giftcode", toJson(giftcode))
+                    .set("enemies", toJson(list_enemies))
+                    .set("rms_save", toJson(rms_save))
+                    .set("medal_create_material", toJson(medal_create_material))
+                    .set("medal_create_material_v2", toJson(medal_create_material_v2 != null ? medal_create_material_v2 : List.of()))
+                    .set("item_star_material", toJson(MaterialItemStar))
+                    .set("point_active", toJson(point_active))
+                    .setIf(quest_daily != null, "quest_daily", toJson(quest_daily))
+
+                    // currency & counters
+                    .set("vang", gold)
+                    .set("kimcuong", kimcuong)
+                    .set("tiemnang", tiemnang)
+                    .set("kynang", kynang)
+                    .set("diemdanh", diemdanh)
+                    .set("chucphuc", chucphuc)
+                    .set("hieuchien", hieuchien)
+                    .set("dicuop", dicuop)
+                    .set("gold_dagang", gold_dagang)
+                    .set("chuyencan", chuyencan)
+
+                    // points & events
+                    .set("point1", point1)
+                    .set("point2", point2)
+                    .set("point3", point3)
+                    .set("point4", point4)
+                    .set("point_arena", pointarena)
+                    .set("point_king_cup", point_king_cup)
+                    .set("group_king_cup", group_king_cup)
+                    .set("type_reward_king_cup", type_reward_king_cup)
+                    .set("bye_count_king_cup", bye_count_king_cup)
+                    .set("poin_isi_ulang_emas", poinIsiUlangEmas)
+                    .set("poin_isi_ulang_permata", poinIsiUlangPermata)
+                    .execute();
+
     }
 
     public void change_new_date() {

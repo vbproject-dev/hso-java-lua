@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONValue;
 import game.guild.Guild;
@@ -26,6 +27,7 @@ import game.map.MapService;
 import utils.JsonUtil;
 import utils.SQLHelper;
 
+@Slf4j
 public class SaveData {
 
     @SuppressWarnings({"unchecked"})
@@ -35,6 +37,46 @@ public class SaveData {
 
         long time_check = System.currentTimeMillis();
         Manager.gI().mine.update();
+
+        SQLHelper.Transaction transaction = SQLHelper.transaction();
+
+        // Guild
+        Guild.entrys.forEach(guild -> {
+            transaction.add(SQLHelper.update("clan").where("name", guild.name)
+                    .set("name", guild.name)
+                    .set("level", guild.level)
+                    .set("exp", guild.exp)
+                    .set("slogan", guild.slogan)
+                    .set("rule", guild.rule)
+                    .set("mems",  Guild.flush_mem_json(guild.members))
+                    .set("item",   Guild.flush_item_json(guild.clanItems))
+                    .set("notice", guild.notice)
+                    .set("vang", guild.gold)
+                    .set("kimcuong", guild.gems)
+                    .set("icon", guild.icon)
+                    .set("max_mem", guild.maxMember));
+        });
+
+        // Wedding
+        Wedding.list.forEach(w ->
+                transaction.add(SQLHelper.update("wedding").where("id", w.id)
+                .set("item", JsonUtil.array(
+                        w.exp,
+                        w.it.color,
+                        w.it.tier,
+                        w.it.op.stream()
+                                .map(op -> JsonUtil.array(op.id, op.getParam(0)))
+                                .collect(com.google.gson.JsonArray::new,
+                                        com.google.gson.JsonArray::add,
+                                        (a, b) -> b.forEach(a::add))
+                ).toString())));
+
+
+
+        if (!transaction.execute()) {
+            log.info("Transaction failed");
+        }
+
 
         try (Connection conn = SQL.gI().getConnection()) {
             conn.setAutoCommit(false);
@@ -46,47 +88,6 @@ public class SaveData {
                     .comparingInt((Guild g) -> g.level).reversed()
                     .thenComparing(Comparator.comparingLong((Guild g) -> g.exp).reversed()));
 
-            // Save Guild Data
-
-            Guild.entrys.forEach(guild -> {
-                SQLHelper.update("clan").where("name", guild.name)
-                        .set("name", guild.name)
-                        .set("level", guild.level)
-                        .set("exp", guild.exp)
-                        .set("slogan", guild.slogan)
-                        .set("rule", guild.rule)
-                        .set("mems",  Guild.flush_mem_json(guild.members))
-                        .set("item",   Guild.flush_item_json(guild.clanItems))
-                        .set("notice", guild.notice)
-                        .set("vang", guild.gold)
-                        .set("kimcuong", guild.gems)
-                        .set("icon", guild.icon)
-                        .set("max_mem", guild.maxMember);
-            });
-
-            // Save Wedding
-            Wedding.list.forEach(w -> SQLHelper.update("wedding").where("id", w.id)
-                    .set("item", JsonUtil.array(
-                            w.exp,
-                            w.it.color,
-                            w.it.tier,
-                            w.it.op.stream()
-                                    .map(op -> JsonUtil.array(op.id, op.getParam(0)))
-                                    .collect(com.google.gson.JsonArray::new,
-                                            com.google.gson.JsonArray::add,
-                                            (a, b) -> b.forEach(a::add))
-                    ).toString()));
-
-            var ps = conn.prepareStatement("UPDATE `wedding` SET `item` = ? WHERE `id` = ?;");
-            for (int i = 0; i < Wedding.list.size(); i++) {
-                Wedding temp = Wedding.list.get(i);
-                ps.clearParameters();
-                ps.setString(1, Wedding.serializeRingItem(temp.exp, temp.it));
-                ps.setInt(2, temp.id);
-                ps.executeUpdate();
-            }
-            ps.close();
-            conn.commit();
 
             // flush player
             String query
@@ -95,7 +96,7 @@ public class SaveData {
                     + "`itembox7` = ?, `itembox3` = ?, `pet` = ?, `medal_create_material` = ?, `point_active` = ?, `vang` = ?, "
                     + "`kimcuong` = ?, `tiemnang` = ?, `kynang` = ?, `diemdanh` = ?, `chucphuc` = ?, `hieuchien` = ?, `typeexp` = ?, "
                     + "`date` = ?, `point1` = ?, `point2` = ?, `point3` = ?, `point4` = ?  WHERE `id` = ?;";
-            ps = conn.prepareStatement(query);
+            var ps = conn.prepareStatement(query);
             for (GameMap[] gameMap : GameMap.entrys) {
                 if(gameMap == null)continue;
                 for (GameMap gameMap0 : gameMap) {

@@ -14,6 +14,7 @@ local MenuHelper     = require("modules.menu.MenuHelper")
 local AuctionManager = require("modules.features.auction.AuctionManager")
 local Input          = require("modules.menu.Input")
 local MailManager    = require("modules.features.mail.MailManager")
+local Dialog         = require("modules.menu.Dialog")
 
 
 
@@ -37,6 +38,29 @@ local function createOtherMenu(session, itemIndex, item)
                 session.p.updateGem(-20000)
                 session.p.item:updateBag()
                 Service.notice(session, "Item unlocked cost 20000 permata")
+            end
+        }),
+
+        MenuHelper.when(item.time_use > 0, {
+            name = "Percepat Durasi",
+            action = function()
+                local price = item.time_use - os.time() * 1000
+                price = math.floor(price / 3600000)
+                price = (price > 4) and (price + 1) or 5
+
+                local dialog = Dialog.build({
+                    id = 1,
+                    text = string.format("Dikenakan %d permata untuk mempercepat lanjutkan?", price),
+                    onRespond = function(yesOrNo)
+                        if yesOrNo then
+                            item.time_use = 0
+                            session.p:updateGem(-price)
+                            session.p.item:updateBag()
+                        end
+                    end
+                })
+                Service.openDialog(session, dialog)
+                session.state:put("dialog", dialog)
             end
         }),
 
@@ -126,7 +150,9 @@ local function onEnterGame(session, packet)
 end
 
 local function onBuyItem(session, packet)
-    if session.state:get("auction") then
+    local auction = session.state:get("auction")
+
+    if auction then
         local reader = packet:copyReader()
         local type = reader:readByte()
         local auctionId = reader:readShort()
@@ -140,8 +166,31 @@ local function onBuyItem(session, packet)
     return false
 end
 
+
+local function onDialog(session, packet)
+    local dialog = session.state:get("dialog")
+    if not dialog then
+        return false
+    end
+
+    local reader = packet:copyReader()
+    local id = reader:readShort();
+
+    if (id ~= session.p.objectId) then
+        return false
+    end
+
+    local type = reader:readByte()
+    local value = reader:readByte() == 1
+
+    dialog:perform(value)
+    session.state:remove("dialog")
+    return true
+end
+
 return {
     [Cmd.MINI_GAME] = onMiniGame,
     [Cmd.CHANGE_MAP] = onEnterGame,
     [Cmd.BUY_ITEM] = onBuyItem,
+    [Cmd.DIALOG_SERVER] = onDialog,
 }

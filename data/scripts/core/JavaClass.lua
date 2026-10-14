@@ -60,6 +60,14 @@ return {
             Java.callStatic("core.Service", "send_box_UI", session, id)
         end,
 
+        openDialog = function(session, dialog)
+            local packet = Java.new("client.io.Message", Cmd.DIALOG_SERVER)
+            packet:writer():writeShort(session.p.objectId);
+            packet:writer():writeByte(dialog.id);
+            packet:writer():writeUTF(dialog.text);
+            session:addmsg(packet)
+        end,
+
         buatJubah = function(session, id)
             Java.callStatic("core.MenuController", "createCloak", session, id)
         end,

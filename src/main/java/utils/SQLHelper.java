@@ -14,6 +14,8 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 public class SQLHelper {
@@ -283,7 +285,7 @@ public class SQLHelper {
     // ============= UPDATE BUILDER WITH MODEL SUPPORT =============
 
     @Getter
-    public static class UpdateBuilder extends WhereBuilder<UpdateBuilder> {
+    public static class UpdateBuilder extends WhereBuilder<UpdateBuilder> implements Operation {
         private String table;
         private final Map<String, Object> updates = new HashMap<>();
         private boolean useRawSql = false;
@@ -380,6 +382,30 @@ public class SQLHelper {
             String whereClause = buildWhereClause();
             return SQL.gI().updateColumns(table, updates, whereClause, whereParams.toArray());
         }
+
+        // BATCH: queue this update in a transaction()
+        @Override
+        public SQL.Command toCommand() {
+            String whereClause = buildWhereClause();
+            if (updates.isEmpty() || whereClause == null) {
+                throw new IllegalStateException("UPDATE needs columns to set and a WHERE clause");
+            }
+
+            List<String> assignments = new ArrayList<>();
+            List<Object> args = new ArrayList<>();
+            updates.forEach((column, value) -> {
+                if (value instanceof String s && s.startsWith("RAW:")) {
+                    assignments.add(column + " = " + s.substring(4));
+                } else {
+                    assignments.add(column + " = ?");
+                    args.add(value);
+                }
+            });
+            args.addAll(whereParams);
+
+            String sql = "UPDATE %s SET %s WHERE %s".formatted(table, String.join(", ", assignments), whereClause);
+            return new SQL.Command(sql, Collections.singletonList(args.toArray()));
+        }
     }
 
     public static UpdateBuilder update(String table) {
@@ -393,7 +419,7 @@ public class SQLHelper {
     // ============= INSERT BUILDER WITH MODEL SUPPORT =============
 
     @Getter
-    public static class InsertBuilder {
+    public static class InsertBuilder implements Operation {
         private String table;
         private final Map<String, Object> values = new HashMap<>();
         private boolean ignore = false;
@@ -503,6 +529,14 @@ public class SQLHelper {
             return execute() >= 0;
         }
 
+        // BATCH: queue this insert in a transaction()
+        @Override
+        public SQL.Command toCommand() {
+            List<String> columns = new ArrayList<>(values.keySet());
+            Object[] row = columns.stream().map(values::get).toArray();
+            return new SQL.Command(insertSql(table, columns), Collections.singletonList(row));
+        }
+
         // NEW: Batch insert from model list
         public List<Long> executeBatchFromModels(List<?> models) {
             List<Long> ids = new ArrayList<>();
@@ -556,7 +590,7 @@ public class SQLHelper {
     // ============= DELETE BUILDER =============
 
     @Getter
-    public static class DeleteBuilder extends WhereBuilder<DeleteBuilder> {
+    public static class DeleteBuilder extends WhereBuilder<DeleteBuilder> implements Operation {
         private String table;
         private Integer limit;
 
@@ -573,6 +607,17 @@ public class SQLHelper {
         public boolean execute() {
             String whereClause = buildWhereClause();
             return SQL.gI().delete(table, whereClause, whereParams.toArray());
+        }
+
+        // BATCH: queue this delete in a transaction()
+        @Override
+        public SQL.Command toCommand() {
+            String whereClause = buildWhereClause();
+            if (whereClause == null) {
+                throw new IllegalStateException("DELETE needs a WHERE clause");
+            }
+            return new SQL.Command("DELETE FROM %s WHERE %s".formatted(table, whereClause),
+                    Collections.singletonList(whereParams.toArray()));
         }
 
         public boolean softDelete(String deletedAtColumn) {
@@ -1396,6 +1441,98 @@ public class SQLHelper {
 
     public static JSONArrayModifier modifyJSONArray(String table, String jsonColumn, String whereClause, Object... whereParams) {
         return new JSONArrayModifier(table, jsonColumn, whereClause, whereParams);
+    }
+
+    // =====================================================================
+    // ============= BATCH / TRANSACTION (multi-table) =====================
+    // =====================================================================
+    //
+    //   SQLHelper.transaction()
+    //       .add(SQLHelper.update("player").decrement("gold", 100).where("id", pid))
+    //       .add(SQLHelper.insert("item").fromModel(item))
+    //       .add(SQLHelper.delete("mail").where("id", mailId))
+    //       .add(SQLHelper.insertAll("trade_log", logs))       // many rows, one JDBC batch
+    //       .add(SQLHelper.updateAll("skill", "id", skills))   // many rows, one JDBC batch
+    //       .execute();                                        // all committed, or all rolled back
+
+    /** A statement that can be queued in a {@link Transaction}. */
+    @FunctionalInterface
+    public interface Operation {
+        SQL.Command toCommand();
+    }
+
+    private static final Operation NO_OP = () -> new SQL.Command("", List.of());
+
+    public static class Transaction {
+        private final List<SQL.Command> commands = new ArrayList<>();
+
+        private Transaction() {
+        }
+
+        public Transaction add(Operation operation) {
+            commands.add(operation.toCommand());
+            return this;
+        }
+
+        /** @return true if everything was committed; false if anything failed (all rolled back) */
+        public boolean execute() {
+            return SQL.gI().executeTransaction(commands);
+        }
+    }
+
+    public static Transaction transaction() {
+        return new Transaction();
+    }
+
+    /** One INSERT run as a JDBC batch over all models (columns from the first model, nulls included). */
+    public static Operation insertAll(String table, Collection<?> models) {
+        if (models.isEmpty()) return NO_OP;
+
+        List<Map<String, Object>> rows = toRows(models);
+        List<String> columns = new ArrayList<>(rows.get(0).keySet());
+        SQL.Command command = new SQL.Command(insertSql(table, columns), bind(rows, columns));
+        return () -> command;
+    }
+
+    /**
+     * One UPDATE run as a JDBC batch: every column except {@code keyField} is SET, rows matched by it.
+     * @param keyField camelCase model field used as the WHERE key, e.g. "id"
+     */
+    public static Operation updateAll(String table, String keyField, Collection<?> models) {
+        if (models.isEmpty()) return NO_OP;
+
+        String key = camelToSnake(keyField);
+        List<Map<String, Object>> rows = toRows(models);
+        List<String> columns = rows.get(0).keySet().stream().filter(c -> !c.equals(key)).toList();
+        String assignments = columns.stream().map(c -> c + " = ?").collect(Collectors.joining(", "));
+        List<String> order = Stream.concat(columns.stream(), Stream.of(key)).toList();
+
+        String sql = "UPDATE %s SET %s WHERE %s = ?".formatted(table, assignments, key);
+        SQL.Command command = new SQL.Command(sql, bind(rows, order));
+        return () -> command;
+    }
+
+    /** Single-table shortcuts for a transaction with one batch. */
+    public static boolean insertBatch(String table, Collection<?> models) {
+        return transaction().add(insertAll(table, models)).execute();
+    }
+
+    public static boolean updateBatch(String table, String keyField, Collection<?> models) {
+        return transaction().add(updateAll(table, keyField, models)).execute();
+    }
+
+    private static List<Map<String, Object>> toRows(Collection<?> models) {
+        return models.stream().map(SQLHelper::modelToMapWithNulls).toList();
+    }
+
+    /** Per-row parameter arrays in the given column order. */
+    private static List<Object[]> bind(List<Map<String, Object>> rows, List<String> columns) {
+        return rows.stream().map(row -> columns.stream().map(row::get).toArray()).toList();
+    }
+
+    private static String insertSql(String table, List<String> columns) {
+        String placeholders = String.join(", ", Collections.nCopies(columns.size(), "?"));
+        return "INSERT INTO %s (%s) VALUES (%s)".formatted(table, String.join(", ", columns), placeholders);
     }
 
 }
