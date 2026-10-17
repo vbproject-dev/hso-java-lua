@@ -57,8 +57,7 @@ end
 
 function MailManager.getUnread(playerId)
     return MailManager.mails:filter(function(mail)
-        return mail.playerId == playerId
-            and mail.status == Mail.STATUS.UNREAD
+        return mail.playerId == playerId and mail.status == Mail.STATUS.UNREAD
     end)
 end
 

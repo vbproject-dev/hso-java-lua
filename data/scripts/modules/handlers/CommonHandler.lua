@@ -15,18 +15,7 @@ local AuctionManager = require("modules.features.auction.AuctionManager")
 local Input          = require("modules.menu.Input")
 local MailManager    = require("modules.features.mail.MailManager")
 local Dialog         = require("modules.menu.Dialog")
-
-
-
-local function onDynamicMenu(session, packet)
-    local reader = packet:reader()
-    local npcId = reader:readShort()
-    local menuId = reader:readByte()
-    local index = reader:readByte()
-
-    Service.notice(session, "Belum ada fitur untuk menu ini")
-    return true
-end
+local GameData       = require("data.GameData")
 
 
 local function createOtherMenu(session, itemIndex, item)
@@ -35,22 +24,10 @@ local function createOtherMenu(session, itemIndex, item)
             name = "Unlock",
             action = function()
                 item.islock = false
-                session.p.updateGem(-20000)
-                session.p.item:updateBag()
-                Service.notice(session, "Item unlocked cost 20000 permata")
-            end
-        }),
-
-        MenuHelper.when(item.time_use > 0, {
-            name = "Percepat Durasi",
-            action = function()
-                local price = item.time_use - os.time() * 1000
-                price = math.floor(price / 3600000)
-                price = (price > 4) and (price + 1) or 5
-
+                local price = 20000
                 local dialog = Dialog.build({
                     id = 1,
-                    text = string.format("Dikenakan %d permata untuk mempercepat lanjutkan?", price),
+                    text = string.format("Biaya %d permata ingin melanjutkan ?", price),
                     onRespond = function(yesOrNo)
                         if yesOrNo then
                             item.time_use = 0
@@ -64,54 +41,83 @@ local function createOtherMenu(session, itemIndex, item)
             end
         }),
 
-        {
-            name = "Lelang",
+        MenuHelper.when(item.time_use > 0, {
+            name = "Percepat Durasi",
             action = function()
-                if session.p.level < AuctionManager.MIN_LEVEL then
-                    Service.notice(session, "Level karakter belum memenuhi persyaratan.")
-                    return
-                end
+                local price = item.time_use - os.time() * 1000
+                price = math.floor(price / 3600000)
+                price = (price > 4) and (price + 1) or 5
 
-                if not AuctionManager.hasSlot(session) then
-                    Service.notice(session, "Slot lelang sudah penuh")
-                    return
-                end
-
-                if not AuctionManager.isAllowed(item) then
-                    Service.notice(session, "Item ini tidak diperbolehkan untuk di lelang")
-                    return
-                end
-
-                local input = Input.build({
-                    npcId = -1,
-                    title = "Pasang Harga",
-                    fields = {
-                        { name = "Permata", type = InputType.NUMERIC },
-                    },
-                    action = function(session, values)
-                        local value = values[1]
-                        if not value then
-                            Service.notice(session, "Input tidak valid")
-                            return
-                        end
-
-                        local minPrice = AuctionManager.getMinPrice(item.color)
-                        if value < minPrice then
-                            Service.notice(session, "Harga terlalu rendah.")
-                            return
-                        end
-
-                        if AuctionManager.registerItem(session, item, value) then
-                            session.p.item:remove(3, itemIndex, 1)
+                local dialog = Dialog.build({
+                    id = 1,
+                    text = string.format("Biaya %d permata ingin melanjutkan ?", price),
+                    onRespond = function(yesOrNo)
+                        if yesOrNo then
+                            item.time_use = 0
+                            session.p:updateGem(-price)
                             session.p.item:updateBag()
-                            Service.notice(session, "Item berhasil di lelangkan")
                         end
-                    end,
+                    end
                 })
-                session.state:put("input", input)
-                Service.openInput(session, input)
+                Service.openDialog(session, dialog)
+                session.state:put("dialog", dialog)
             end
-        }
+        }),
+
+        MenuHelper.when(not item.islock,
+            {
+                name = "Lelang",
+                action = function()
+                    if session.p.level < AuctionManager.MIN_LEVEL then
+                        Service.notice(session, "Level karakter belum memenuhi persyaratan.")
+                        return
+                    end
+
+                    if item.islock then
+                        Service.notice(session, "Item yang terkunci tidak bisa di lelangkan")
+                        return
+                    end
+
+                    if not AuctionManager.hasSlot(session) then
+                        Service.notice(session, "Slot lelang sudah penuh")
+                        return
+                    end
+
+                    if not AuctionManager.isAllowed(item) then
+                        Service.notice(session, "Item ini tidak diperbolehkan untuk di lelang")
+                        return
+                    end
+
+                    local input = Input.build({
+                        npcId = -1,
+                        title = "Pasang Harga",
+                        fields = {
+                            { name = "Permata", type = InputType.NUMERIC },
+                        },
+                        action = function(session, values)
+                            local value = values[1]
+                            if not value then
+                                Service.notice(session, "Input tidak valid")
+                                return
+                            end
+
+                            local minPrice = AuctionManager.getMinPrice(item.color)
+                            if value < minPrice then
+                                Service.notice(session, "Harga terlalu rendah.")
+                                return
+                            end
+
+                            if AuctionManager.registerItem(session, item, value) then
+                                session.p.item:remove(3, itemIndex, 1)
+                                session.p.item:updateBag()
+                                Service.notice(session, "Item berhasil di lelangkan")
+                            end
+                        end,
+                    })
+                    session.state:put("input", input)
+                    Service.openInput(session, input)
+                end
+            })
 
     })
 
@@ -146,13 +152,25 @@ end
 
 local function onEnterGame(session, packet)
     MailManager.notifyUnread(session)
+
+    -- local haku = GameData.getNpc(115)
+    -- local npcs = ArrayList.new()
+    -- if session.p.map.mapId == 1 then
+    --     npcs:add({
+    --         x = 320,
+    --         y = 240,
+    --         data = haku
+    --     })
+    -- end
+
+    -- Service.sendNpc(session, npcs)
     return false
 end
 
 local function onBuyItem(session, packet)
     local auction = session.state:get("auction")
 
-    if auction then
+    if auction ~= nil then
         local reader = packet:copyReader()
         local type = reader:readByte()
         local auctionId = reader:readShort()

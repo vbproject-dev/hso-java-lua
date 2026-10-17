@@ -1,5 +1,6 @@
 package core;
 
+import core.lua.JavaToLua;
 import core.lua.NativeLua;
 import game.event.DailyReset;
 import game.event.GameEventManager;
@@ -90,6 +91,10 @@ public class ServerManager implements Runnable {
 
                 Session session = new Session(client);
                 session.init();
+
+                if (Manager.gI().useLua) {
+                    JavaToLua.call("core.LuaBridge.onConnected", new Object[]{session});
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();

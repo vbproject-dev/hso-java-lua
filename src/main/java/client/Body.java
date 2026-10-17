@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import core.Manager;
 import core.Service;
 import core.Util;
+import core.lua.JavaToLua;
 import event_daily.CastleSiegeManager;
 import event_daily.KingCup;
 import game.map.GameMap;
@@ -652,6 +653,7 @@ public class Body extends MainObject {
 
     @Override
     public void setDie(GameMap gameMap, MainObject mainAtk) throws IOException {
+
         if (gameMap.mapId == 87) {
             CastleSiegeManager.PlayerDie(p);
         }
@@ -659,9 +661,7 @@ public class Body extends MainObject {
         p.hp = 0;
         p.isdie = true;
 
-        // Bug fix: kematian di arena King Cup (map 102) sebelumnya tidak pernah
-        // menambah countWin siapa pun, jadi hasil PK di arena tidak berpengaruh
-        // ke pemenang ronde/pertandingan (lihat KingCup.update()).
+
         if (gameMap.mapId == 102 && gameMap.kingCupRef != null && (p.typepk == 12 || p.typepk == 13)) {
             KingCup match = gameMap.kingCupRef;
             Player winner = (p.typepk == 12)
@@ -673,19 +673,21 @@ public class Body extends MainObject {
             match.end_round(); // reset HP/posisi kedua pemain untuk ronde berikutnya (best of 3)
         }
 
-        Player pATK = mainAtk.isPlayer() ? (Player) mainAtk : null;
-        if (pATK != null) {
-            if (pATK.list_enemies.contains(this.name)) {
-                pATK.list_enemies.remove(this.name);
-                MapService.SendChat(gameMap, pATK, "Take a bite :v", true);
-            } else if (p.typepk == -1) {
-                if (!p.list_enemies.contains(pATK.name)) {
-                    p.list_enemies.add(pATK.name);
-                    if (p.list_enemies.size() > 20) {
-                        p.list_enemies.remove(0);
+        if (mainAtk != null) {
+            Player pATK = mainAtk.isPlayer() ? (Player) mainAtk : null;
+            if (pATK != null) {
+                if (pATK.list_enemies.contains(this.name)) {
+                    pATK.list_enemies.remove(this.name);
+                    MapService.SendChat(gameMap, pATK, "Take a bite :v", true);
+                } else if (p.typepk == -1) {
+                    if (!p.list_enemies.contains(pATK.name)) {
+                        p.list_enemies.add(pATK.name);
+                        if (p.list_enemies.size() > 20) {
+                            p.list_enemies.remove(0);
+                        }
                     }
+                    MapService.SendChat(gameMap, p, "Anak kecil ini, tunggu aku online, aku akan menendangmu tanpa meleset sekali ><", true);
                 }
-                MapService.SendChat(gameMap, p, "Anak kecil ini, tunggu aku online, aku akan menendangmu tanpa meleset sekali ><", true);
             }
         }
     }
@@ -751,24 +753,7 @@ public class Body extends MainObject {
                 }
             }
             if (p.hp <= 0 && !p.isdie) {
-                // FIX RACE CONDITION: dulu blok ini langsung menge-set isdie=true begitu
-                // membaca hp<=0, tanpa lewat setDie()/Player_Die(). Kalau tick ini pas
-                // nyelonong di tengah MainObject.attack() -- setelah "focus.hp -= dame"
-                // tapi sebelum logika grace-period anti-oneshot sempat menyelamatkan HP
-                // ke 5 -- isdie kepasang true padahal HP sudah/akan diselamatkan, dan
-                // tidak ada yang pernah revive() pemain ini lagi (round-transition PvpSession
-                // tidak pernah terpicu karena setDie() tidak pernah dipanggil). Efeknya
-                // pemain kelihatan hidup tapi tidak bisa menyerang selamanya.
-                // synchronized(p) di sini + baca ulang p.hp SETELAH lock didapat menutup
-                // jendela race itu: kalau attack() sudah keburu menyelamatkan HP (thread
-                // itu juga harus lewat lock yang sama sebelum re-check ini), p.hp di sini
-                // sudah bukan <=0 lagi dan isdie tidak jadi di-set.
-                synchronized (p) {
-                    if (p.hp <= 0 && !p.isdie) {
-                        p.hp = 0;
-                        p.isdie = true;
-                    }
-                }
+                setDie(gameMap, null);
             }
             //</editor-fold>    eff Player
         } catch (Exception e) {

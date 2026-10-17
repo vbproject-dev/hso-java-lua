@@ -15,6 +15,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import core.lua.JavaToLua;
+import core.lua.NativeLua;
 import devtools.AccountHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONArray;
@@ -154,6 +156,10 @@ public class Session implements Runnable {
     }
 
     private void disconnect() {
+
+        if (Manager.gI().useLua) {
+            JavaToLua.call("core.LuaBridge.onDisconnected", new Object[]{this});
+        }
 
         if (!disconnecting.compareAndSet(false, true)) {
             return;

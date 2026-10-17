@@ -4894,7 +4894,7 @@ public class MenuController {
         }
     }
 
-    private static void Menu_Admin(Session conn, byte index) throws IOException {
+    public static void Menu_Admin(Session conn, byte index) throws IOException {
         switch (index) {
             case 0: {
                 if (conn.ac_admin < 10) {

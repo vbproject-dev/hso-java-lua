@@ -76,6 +76,28 @@ return {
             Java.callStatic("core.MenuController", "createTitle", session, id)
         end,
 
+        sendNpc = function(session, npcs)
+            local packet = Java.new("client.io.Message", Cmd.NPC_BIG)
+            packet:writer():writeByte(npcs:size());
+            npcs:forEach(function(npc)
+                packet:writer():writeUTF(npc.data.name)
+                packet:writer():writeUTF(npc.data.dialog_name)
+                packet:writer():writeByte(npc.data.id)
+                packet:writer():writeByte(npc.data.image_id)
+                packet:writer():writeShort(npc.x)
+                packet:writer():writeShort(npc.y)
+                packet:writer():writeByte(npc.data.w_block)
+                packet:writer():writeByte(npc.data.h_block)
+                packet:writer():writeByte(npc.data.total_frame)
+                packet:writer():writeByte(npc.data.big_avatar)
+                packet:writer():writeUTF(npc.data.dialog_text)
+                packet:writer():writeByte(npc.data.is_person)
+                packet:writer():writeByte(npc.data.is_show_hp)
+            end)
+
+            session:addmsg(packet)
+        end,
+
         chat = function(session, from, msg)
             local packet = Java.new("client.io.Message", Cmd.CHAT_TAB)
             packet:writer():writeUTF(from)

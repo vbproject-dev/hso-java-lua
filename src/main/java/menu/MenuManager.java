@@ -797,6 +797,12 @@ public class MenuManager {
 
                     });
                 })
+                .item("Teteskan Telur", p -> {
+                    try {
+                        MenuController.Menu_Admin(p.conn, (byte)12);
+                    } catch (IOException ignore) {
+                    }
+                })
                 .item("Set Pet Level", p -> {
                     InputDialog dialog = InputDialog
                             .builder()

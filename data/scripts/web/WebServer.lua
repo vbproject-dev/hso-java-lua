@@ -11,6 +11,7 @@
 local FileApi = require("web.features.files.FileApi")
 local MailApi = require("web.features.mail.MailApi")
 local MemberApi = require("web.features.membership.MemberApi")
+local GiftCodeApi = require("web.features.giftcode.GiftCodeApi")
 
 local WebServer = class("WebServer")
 
@@ -19,12 +20,14 @@ function WebServer:ctor()
     self.features = {
         FileApi,
         MailApi,
-        MemberApi
+        MemberApi,
+        GiftCodeApi
     }
 end
 
 function WebServer:init()
     local cfg = Java.callStatic("core.Manager", "gI")
+    self.server:staticFiles("/", "./data/web/")
     self.server:setMaxBodySize(1000000000)
     self.server:setHandler({
         onGet = function(request)

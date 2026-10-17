@@ -355,7 +355,6 @@ function AuctionManager.buy(session, auctionId)
 
     if not ok then
         log("[AuctionManager] Failed to delete auction %d: %s", auction.id, err)
-        return
     end
 
     -- Get Player Name From DB

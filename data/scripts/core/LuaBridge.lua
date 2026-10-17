@@ -8,19 +8,65 @@
 --
 --]]
 
-local Cmd             = require "core.Cmd"
+
 local NpcRegistry     = require "modules.npc.NpcRegistry"
 local HandlerRegistry = require "modules.handlers.HandlerRegistry"
 local Service         = require("core.JavaClass").Service
 
-local LuaBridge       = {}
+
+local MAX_PACKETS_PER_SECOND = 10
+local rateLimits             = setmetatable({}, { __mode = "k" })
+local blockedIPs             = {}
+local LuaBridge              = {}
+
+local function isRateLimited(session, cmd)
+    local now = os.time()
+
+    local sessionLimits = rateLimits[session]
+    if not sessionLimits then
+        sessionLimits = {}
+        rateLimits[session] = sessionLimits
+    end
+
+    local limit = sessionLimits[cmd]
+
+    if not limit or limit.second ~= now then
+        sessionLimits[cmd] = {
+
+            second = now,
+            count = 1
+        }
+        return false
+    end
+
+    if limit.count >= MAX_PACKETS_PER_SECOND then
+        return true
+    end
+
+    limit.count = limit.count + 1
+    return false
+end
 
 
 function LuaBridge.onMessage(session, msg)
+    -- Reject previously blocked IPs.
+    if blockedIPs[session.ip] then
+        session:close()
+        return true
+    end
+
+    -- Block the IP if it exceeds the limit.
+    if isRateLimited(session, msg.cmd) then
+        blockedIPs[session.ip] = true
+        session:close()
+
+        log("[SPAM PACKET DETECTED] Blocked IP: %s, command: %s", session.ip, msg.cmd)
+        return true
+    end
+
     local handler = HandlerRegistry.get(msg.cmd)
 
     if not handler then
-        -- log("[Network] Unhandled Command %s from %s", Cmd.getName(msg.cmd), session.ip)
         return false
     end
 
@@ -31,7 +77,7 @@ end
 
 function LuaBridge.onTalk(session, npcId)
     return try(function()
-        session.state:remove("auction")
+        session.state:clear()
         local script = NpcRegistry.get(npcId)
 
         if not script then
@@ -116,6 +162,19 @@ function LuaBridge.onSelectMenu(session, npcId, menuId, index)
 
         return true
     end)
+end
+
+-- SESSION HOOK
+function LuaBridge.onConnected(session)
+    --log("%s CONNECTED TO SERVER", session.ip)
+end
+
+function LuaBridge.onDisconnected(session)
+    --log("%s DISCONNECTED FROM SERVER", session.p and session.p.name or session.ip)
+end
+
+function LuaBridge.onDie(mainObject)
+
 end
 
 return LuaBridge

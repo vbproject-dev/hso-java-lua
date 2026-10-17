@@ -51,7 +51,7 @@ public class MessageHandler {
     public void process_msg(Message m) throws IOException {
         boolean isHandledByLua;
 
-        if (Manager.gI().useLua) {
+        if (Manager.gI().useLua && NativeLua.isLoaded()) {
             isHandledByLua = JavaToLua.call("core.LuaBridge.onMessage", new Object[]{conn, m});
             if (isHandledByLua) {
                 return;

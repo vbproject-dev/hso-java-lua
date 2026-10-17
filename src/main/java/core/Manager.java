@@ -17,10 +17,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import game.event.GameEventManager;
 import event_daily.*;
@@ -45,6 +42,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.json.simple.JSONObject;
 import game.rewards.DonationPack;
 import template.*;
+import utils.PetDataLoader;
 import utils.SQLHelper;
 
 @Slf4j
@@ -361,12 +359,24 @@ public class Manager {
                 ou.writeByte(val);
             }
 
-            // DATA EFFECT
-            List<DataEffect> dataEffects = sv.getDataEffects();
-            ou.writeByte(dataEffects.size());
-            for (DataEffect eff : dataEffects) {
-                ou.writeByte(eff.getId());
-                byte[] data = eff.getData();
+            // PET DATA FROM DATABASE
+//            List<DataEffect> dataEffects = sv.getDataEffects();
+//            ou.writeByte(dataEffects.size());
+//            for (DataEffect eff : dataEffects) {
+//                ou.writeByte(eff.getId());
+//                byte[] data = eff.getData();
+//                ou.writeShort(data.length);
+//                for (byte val : data) {
+//                    ou.writeByte(val);
+//                }
+//            }
+
+            // PET DATA FROM DISK
+            Map<Integer, byte[]> petData = PetDataLoader.getAll();
+            ou.writeByte(petData.size());
+            for (Map.Entry<Integer, byte[]> entry : petData.entrySet()) {
+                ou.writeByte(entry.getKey());
+                byte[] data = entry.getValue();
                 ou.writeShort(data.length);
                 for (byte val : data) {
                     ou.writeByte(val);

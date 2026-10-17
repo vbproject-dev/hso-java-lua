@@ -397,6 +397,7 @@ public class MainObject {
      * diam-diam oleh guard PK di attack(), cetak alasannya ke console (maks. 1x per
      * 3 detik per penyerang) supaya kelihatan guard mana yang memblokir.
      */
+
     private static void logArenaBlock(GameMap gameMap, MainObject a, MainObject f) {
         String why = null;
         if (gameMap.ismaplang) why = "ismaplang=true (is_city map 102 di DB)";

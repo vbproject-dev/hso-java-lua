@@ -244,11 +244,9 @@ public class Player extends Body {
     public boolean xiu;
     public String taixiu = "Anda belum memasang taruhan.";
     public boolean isOnline;
-    /** ID baris session_log yang aktif. -1 jika belum login / tidak ditrack. */
     public int sessionLogId = -1;
-    /** True jika karakter sedang dalam mode AFK (bot aktif, socket terputus). */
     public boolean modeBot;
-    /** Kontroler bot AFK — aktif saat modeBot == true. */
+
     public game.afk.AfkBotController afkBot;
     public Mount mount;
     public PlayerQuest quest;

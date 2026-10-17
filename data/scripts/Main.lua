@@ -27,7 +27,7 @@ DEBUG                     = true
 local WEB                 = nil
 
 local MYSQL_ELAPSED       = 0
-local MYSQL_PING_INTERVAL = 500
+local MYSQL_PING_INTERVAL = 300
 
 function Main.onLoad()
     -- Setup MYSQL
@@ -71,22 +71,22 @@ function Main.onUpdate(dt)
         MySQL.instance():ping()
         MYSQL_ELAPSED = 0
 
-        local memoryKB = collectgarbage("count")
-        local memory
-        local unit
+        -- local memoryKB = collectgarbage("count")
+        -- local memory
+        -- local unit
 
-        if memoryKB >= 1024 * 1024 then
-            memory = memoryKB / (1024 * 1024)
-            unit = "GB"
-        elseif memoryKB >= 1024 then
-            memory = memoryKB / 1024
-            unit = "MB"
-        else
-            memory = memoryKB
-            unit = "KB"
-        end
+        -- if memoryKB >= 1024 * 1024 then
+        --     memory = memoryKB / (1024 * 1024)
+        --     unit = "GB"
+        -- elseif memoryKB >= 1024 then
+        --     memory = memoryKB / 1024
+        --     unit = "MB"
+        -- else
+        --     memory = memoryKB
+        --     unit = "KB"
+        -- end
 
-        log("[LUA MEM USED] : %.2f %s", memory, unit)
+        -- log("[LUA MEM USED] : %.2f %s", memory, unit)
     end
 
     if WEB then
