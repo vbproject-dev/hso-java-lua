@@ -157,7 +157,7 @@ public class Session implements Runnable {
 
     private void disconnect() {
 
-        if (Manager.gI().useLua) {
+        if (Manager.gI().useLua && NativeLua.isLoaded()) {
             JavaToLua.call("core.LuaBridge.onDisconnected", new Object[]{this});
         }
 

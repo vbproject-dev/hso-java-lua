@@ -2,6 +2,7 @@ package core;
 
 import BossHDL.BossManager;
 import core.lua.JavaToLua;
+import core.lua.NativeLua;
 import equipment.StatGenerator;
 import ev_he.Event_2;
 import ev_he.Event_3;
@@ -524,7 +525,7 @@ public class MenuController {
         short npcId = m.reader().readShort();
         byte menuId = m.reader().readByte();
         byte index = m.reader().readByte();
-        if (Manager.gI().useLua) {
+        if (Manager.gI().useLua && NativeLua.isLoaded()) {
             boolean isHandledByLua = JavaToLua.call("core.LuaBridge.onSelectMenu", new Object[]{conn, npcId, menuId, index});
             if (isHandledByLua) {
                 return;

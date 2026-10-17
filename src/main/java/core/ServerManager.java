@@ -92,7 +92,7 @@ public class ServerManager implements Runnable {
                 Session session = new Session(client);
                 session.init();
 
-                if (Manager.gI().useLua) {
+                if (Manager.gI().useLua && NativeLua.isLoaded()) {
                     JavaToLua.call("core.LuaBridge.onConnected", new Object[]{session});
                 }
             }

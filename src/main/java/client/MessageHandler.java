@@ -317,7 +317,7 @@ public class MessageHandler {
                 break;
             }
             case -31: {
-                if (Manager.gI().useLua) {
+                if (Manager.gI().useLua && NativeLua.isLoaded()) {
                     isHandledByLua = JavaToLua.call("core.LuaBridge.onInput", new Object[]{conn, m});
                     if (!isHandledByLua) {
                         TextFromClient.process(conn, m);
@@ -369,7 +369,7 @@ public class MessageHandler {
 
 
                 int npcId = m.reader().readByte();
-                if (Manager.gI().useLua) {
+                if (Manager.gI().useLua && NativeLua.isLoaded()) {
 
                     isHandledByLua = JavaToLua.call("core.LuaBridge.onTalk", new Object[]{conn, npcId});
                     if (isHandledByLua) {

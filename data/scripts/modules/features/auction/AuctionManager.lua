@@ -304,14 +304,12 @@ function AuctionManager.getMinPrice(color)
 end
 
 function AuctionManager.buy(session, auctionId)
-    local hasAuction = session.state:get("auction")
-    local auction    = AuctionManager.auctionItems:findFirst(function(auction)
+    local auction = AuctionManager.auctionItems:findFirst(function(auction)
         return auction.id == auctionId and auction.status == AuctionManager.STATUS.ONSALE
     end)
 
     if not auction then
         Service.notice(session, "Item tidak ditemukan")
-        log("Has Auction %s ", tostring(hasAuction))
         return
     end
 

@@ -166,15 +166,14 @@ end
 
 -- SESSION HOOK
 function LuaBridge.onConnected(session)
-    --log("%s CONNECTED TO SERVER", session.ip)
+    log("%s CONNECTED TO SERVER", session.ip)
 end
 
 function LuaBridge.onDisconnected(session)
-    --log("%s DISCONNECTED FROM SERVER", session.p and session.p.name or session.ip)
+    log("%s DISCONNECTED FROM SERVER", session.p and session.p.name or session.ip)
 end
 
-function LuaBridge.onDie(mainObject)
-
+function LuaBridge.onPlayerDie(player)
 end
 
 return LuaBridge

@@ -11,6 +11,8 @@ import client.Player;
 import core.Manager;
 import core.Service;
 import core.Util;
+import core.lua.JavaToLua;
+import core.lua.NativeLua;
 import event_daily.CastleSiegeManager;
 import client.io.Message;
 import game.event.GameEventManager;
@@ -1180,12 +1182,7 @@ public class MainObject {
                     if (btf != null) {
                         Team team = btf.getPlayerTeam(p.objectId);
                         if (team != null) {
-                            // FIX: Team#addPoint() melempar IOException (kirim paket ke
-                            // tiap anggota tim). Sebelumnya exception ini tidak ditangkap
-                            // di sini, jadi kalau socket satu pemain saja bermasalah,
-                            // destroyTower() dan grantHouseLoot() di bawah ini ikut
-                            // TIDAK PERNAH dipanggil. Sekarang dibungkus try-catch,
-                            // konsisten dengan pola addPoint() lain di codebase ini.
+
                             try {
                                 team.addPoint(30);
                             } catch (IOException ignore) {
@@ -1197,15 +1194,19 @@ public class MainObject {
                 }
                 if (focus.isPlayer()) {
                     MapService.Player_Die(gameMap, focus, ObjAtk, true);
+
+                    if (Manager.gI().useLua && NativeLua.isLoaded()) {
+                        Player localPlayer = (Player) focus;
+                        JavaToLua.call("core.LuaBridge.onPlayerDie", new Object[]{localPlayer});
+                    }
+
                     if (gameMap.mapId == 102) {
                         PvpManager.gI().onPlayerDie((Player) focus);
-                        // King Cup: end_round() sudah me-revive pemain SEBELUM paket
-                        // Player_Die (41) di atas terkirim, jadi client menganggap dia
-                        // mati lagi. Kirim ulang state hidup supaya tiba paling akhir.
                         if (gameMap.kingCupRef != null) {
                             gameMap.kingCupRef.resyncAliveState();
                         }
                     }
+
                     if (GameMap.isBattlefieldMap(gameMap.mapId)) {
                         Manager.gI().chatKTGprocess(focus.name + " was killed by " + ObjAtk.name);
                         BTF btf = GameEventManager.gI().getEvent(BTF.class);
@@ -1224,15 +1225,6 @@ public class MainObject {
                         }
                     }
                 } else {
-                    // FIX BUG DAILY QUEST: dulu di sini ada panggilan DailyQuest.on_mob_killed()
-                    // + on_party_kill() lagi, padahal focus.setDie(gameMap, ObjAtk) di atas
-                    // (baris ~1161) sudah memanggil MobInMap.setDie(), yang di dalamnya SUDAH
-                    // memanggil kedua hook DailyQuest itu (lihat MobInMap.setDie(), baik untuk
-                    // boss maupun mob biasa). Akibatnya progress quest_daily[2] nambah +2 per
-                    // kill (bukan +1) untuk setiap kill lewat attack(), jadi misi selesai dua
-                    // kali lebih cepat dari target sebenarnya. Dihapus di sini, cukup dari
-                    // MobInMap.setDie() saja (yang juga sudah benar-benar tertangani untuk
-                    // kasus boss dengan banyak hitter).
                     MapService.MainObj_Die(gameMap, null, focus, true);
                 }
 
