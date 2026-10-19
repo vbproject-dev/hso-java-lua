@@ -20,48 +20,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/**
- * MalamSuroAmbush — Sub-event Halloween ("Malam Suro"): Teror Dadakan
- *
- * ── Konsep ───────────────────────────────────────────────────────────────────
- *  Selama HalloweenEvent aktif, sesekali (interval acak, lihat
- *  SPAWN_INTERVAL_MIN_SEC/MAX_SEC) satu hantu (mob boss kecil) muncul
- *  MENDADAK di map acak yang lagi ada pemainnya, tepat di dekat salah satu
- *  pemain di map itu — tanpa peringatan lokasi sebelumnya, biar berasa
- *  jumpscare.
- *
- *  Hantu ini didaftarkan ke Boss_entrys dengan isBoss=true + isATK=true,
- *  jadi otomatis di-aggro & diserang lewat AI bawaan MobInMap.update() /
- *  MapService.update_inside_player() — SAMA PERSIS seperti boss lain di
- *  codebase ini (WorldBoss, PersimpanganKematian). Artinya:
- *    - Kalau pemain lengah/gak sadar -> hantu nyerang duluan, bisa
- *      membunuh pemain (lewat combat system otomatis, bukan kode manual
- *      di sini).
- *    - Kalau pemain sadar & berhasil membunuh hantu itu -> semua
- *      penyumbang damage (top_dame) dapat hadiah Jimat Malam Suro.
- *
- *  Lokasi dibatasi ke map tertentu lewat AMBUSH_MAP_IDS (whitelist). Hantu
- *  spawn di map acak dari daftar itu (TIDAK perlu ada pemain di sana), lalu
- *  ada notice ke seluruh server. Kalau 5 menit tidak ada yang membunuhnya,
- *  hantu hilang begitu saja tanpa hadiah.
- *
- *  Cuma ADA 1 hantu ambush aktif dalam satu waktu di seluruh server —
- *  biar tetap kerasa "kejutan langka", bukan spam mob nongol tiap detik.
- *  Kalau hantu kelamaan gak mati (AMBUSH_LIFETIME_SEC), dia menghilang
- *  sendiri tanpa hadiah, supaya tidak nyangkut selamanya di satu map.
- *
- * ── Jadwal ───────────────────────────────────────────────────────────────────
- *  Aktif 24 jam tiap hari selama HalloweenEvent berjalan (dicek manual di
- *  onUpdate(), bukan lewat jadwal days/times — pola sama seperti
- *  PersimpanganKematian yang nempel ke KemerdekaanEvent). Kalau mau
- *  dibatasi cuma malam hari, filter jam di trySpawnGhost() atau ganti
- *  jadwal di constructor.
- *
- * ── Daftarkan di GameEventManager ─────────────────────────────────────────────
- *  if (m.event_halloween) addEvent(new MalamSuroAmbush());
- *  (boleh pakai flag hso.conf sendiri kalau mau bisa di-off terpisah dari
- *  HalloweenEvent utama, mis. event_malam_suro_ambush).
- */
 @Slf4j
 public class MalamSuroAmbush extends GameEvent {
 
@@ -70,12 +28,7 @@ public class MalamSuroAmbush extends GameEvent {
     private static final int SPAWN_INTERVAL_MAX_SEC = 480; // 8 menit
     private static final int AMBUSH_LIFETIME_SEC     = 300; // 5 menit: kalau gak ada yang bunuh, hantu hilang begitu saja
 
-    // ── Map tempat hantu boleh muncul ────────────────────────────────────────
-    // Hantu HANYA akan spawn di map yang id-nya ada di daftar ini (semua zone/
-    // khu dari map itu ikut dihitung, asal ada pemainnya). Pemain di map lain
-    // tidak akan pernah kena ambush.
-    // GANTI angka di bawah sesuai map_id yang kamu mau. Kalau daftar ini
-    // dikosongkan (Set.of()), hantu bisa muncul di SEMUA map seperti semula.
+    // set map_id yang boleh kedatangan hantu ambush. Kosong = semua map boleh.
     private static final Set<Integer> AMBUSH_MAP_IDS = Set.of(
         1, 2, 3   
     );
@@ -85,19 +38,13 @@ public class MalamSuroAmbush extends GameEvent {
     private static final int RETRY_FAIL_SEC = 30;
 
     // ── Konstanta mob ────────────────────────────────────────────────────────
-    // GANTI id ini begitu ada template mob "Pocong"/"Genderuwo" sendiri di
-    // tabel monster_template — sekarang pakai 223 (Kunti Mantan, sudah ada
-    // dari data event Kemerdekaan) biar bisa langsung jalan tanpa data baru.
-    private static final short AMBUSH_MOB_TEMPLATE_ID = 223;
+    private static final short AMBUSH_MOB_TEMPLATE_ID = 223; 
     private static final int   AMBUSH_HP     = 400_000;
     private static final int   AMBUSH_DAMAGE = 25_000;
     private static final int   AMBUSH_DEF    = 6_000;
     private static final int   AMBUSH_OBJECT_ID = 29_999; // cuma 1 ambush aktif -> aman pakai id tetap
 
     // ── Hadiah ───────────────────────────────────────────────────────────────
-    // GANTI id ini sesuai item "Jimat Malam Suro" di tabel item7 kamu.
-    // Dibuat public+static supaya dipakai bareng NPC halloween lain
-    // (NpcDukun, NpcPocong) yang juga transaksi pakai currency Jimat ini.
     public static final short JIMAT_ID           = 475;
     public static final byte  ITEM_CAT_MATERIAL  = 7;
     private static final int  JIMAT_DROP_MIN     = 5;
@@ -181,11 +128,6 @@ public class MalamSuroAmbush extends GameEvent {
     }
 
     // ── Getter publik ────────────────────────────────────────────────────────
-    // Dipakai NpcBanaspati buat "merasakan aura" -> kasih tahu pemain map mana
-    // yang lagi kedatangan hantu ambush (kalau ada), tanpa expose koordinat
-    // persis/nama pemain target -> tetap ada usaha buat nyari, bukan auto-tau.
-
-    /** TRUE kalau ada hantu ambush yang sedang aktif sekarang. */
     public boolean isGhostActive() {
         return activeGhost != null && !activeGhost.isdie;
     }
@@ -226,9 +168,6 @@ public class MalamSuroAmbush extends GameEvent {
         ghost.zone_id        = targetMap.zoneId;
         ghost.setBaseDamage(AMBUSH_DAMAGE);
         ghost.setBaseDefense(AMBUSH_DEF);
-        // isBoss=true WAJIB: itu yang bikin MapService.update_inside_player()
-        // otomatis meng-aggro pemain sekitar ke list_fight & merekam top_dame
-        // buat reward pas mati. isATK=true bikin hantu aktif nyerang balik.
         ghost.setBoss(true);
         ghost.is_boss_active = true;
         ghost.isdie          = false;

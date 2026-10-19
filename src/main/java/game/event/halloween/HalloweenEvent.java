@@ -9,17 +9,8 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Kerangka event Halloween. Belum ada logic apa pun di dalamnya —
- * isi onStart()/onEnd()/onUpdate() sesuai kebutuhan (buka toko, spawn NPC,
- * ubah drop rate, dll). Jadwal default: aktif tiap hari, 25 Okt - 1 Nov.
- */
 public class HalloweenEvent extends GameEvent {
 
-
-    // Periode musim Halloween "Malam Suro". SATU-SATUNYA sumber tanggal event
-    // ini — dipakai langsung oleh shouldBeRemoved() di bawah. Ganti di sini
-    // kalau mau ubah tanggal event, jangan hardcode angka lain di tempat lain.
     private static final int START_MONTH = 9;
     private static final int START_DAY   = 25;
     private static final int END_MONTH   = 11;

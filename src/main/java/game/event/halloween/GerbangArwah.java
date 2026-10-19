@@ -29,12 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 public class GerbangArwah extends GameEvent {
 
     // ── Konstanta map ─────────────────────────────────────────────────────────
-    // GANTI ke id map kosong yang tersedia di server kamu — 118 di sini
-    // CUMA PLACEHOLDER, harus beda dari MAP_ID Persimpangan Kematian (117)
-    // supaya 2 event ini tidak bentrok kalau kebetulan berjalan bersamaan.
-    // Jangan lupa juga daftarkan map ini di GameMap.is_map__load_board_player()
-    // (sama seperti map 117), atau kristal & lilin tidak akan terlihat client.
-    public static final byte  MAP_ID        = 120;
+    public static final byte  MAP_ID        = 121;
     public static final byte  ZONE_ID       = 0;
     private static final short PLAYER_SPAWN_X = (short)(10 * 24);
     private static final short PLAYER_SPAWN_Y = (short)(10 * 24);
@@ -58,8 +53,6 @@ public class GerbangArwah extends GameEvent {
     private final java.util.Set<Player> lilinVisualSent = new java.util.concurrent.CopyOnWriteArraySet<>();
 
     // ── Konstanta pergerakan mob (logic sama seperti Dungeon.java / "Batu
-    // Meteor" dungeon: mob berjalan bertahap tiap tick menuju target, lalu
-    // begitu sudah cukup dekat berhenti & mulai menyerang) ─────────────────────
     private static final int MOB_MOVE_SPEED    = 32;   // px yang ditempuh tiap tick pergerakan (≈1.3 tile)
     private static final long MOB_MOVE_TICK_MS = 400;  // interval pergerakan (lebih sering = lebih halus)
     private static final int MOB_ATTACK_RANGE  = 48;   // px, jarak dari kristal supaya mob dianggap "sampai" & mulai nyerang (2 tile)
@@ -74,61 +67,14 @@ public class GerbangArwah extends GameEvent {
     private long    pendingBossWipeAt = 0; // 0 = tidak ada wipe terjadwal; selain itu = timestamp eksekusi
 
     // ── HP Kristal per wave ────────────────────────────────────────────────────
-    // Semua wave sekarang world boss saja (2 boss/wave, bukan lagi puluhan mob
-    // biasa), dan kristal TIDAK lagi diserang lewat MainObject.attack() mob
-    // biasa tiap 3 detik — selama minimal 1 boss masih hidup, HP kristal
-    // otomatis berkurang KRISTAL_DRAIN_PER_TICK tiap detik (lihat
-    // drainKristalWhileBossAlive()). Nilai di bawah diturunkan drastis dari
-    // versi lama (120jt) supaya seimbang dengan drain rate baru yang jauh
-    // lebih lambat. Sesuaikan lagi sesuai lama rata-rata 1 wave boss bertahan.
     private static final int KRISTAL_HP = 2_000_000;
 
-    // Damage flat ke kristal tiap detik, SELAMA minimal 1 world boss masih
-    // hidup di wave berjalan (tidak peduli jumlah/posisi boss).
-    private static final int KRISTAL_DRAIN_PER_TICK = 1000;
+    private static final int KRISTAL_DRAIN_PER_TICK = 10_000;
     private static final long KRISTAL_DRAIN_INTERVAL_MS = 1000;
 
     // ── Konfigurasi wave ──────────────────────────────────────────────────────
-    /**
-     * Kode event dipakai sebagai key untuk baca konfigurasi wave dari tabel
-     * `event_wave_config` (lihat WaveConfig.loadFromDB()). SENGAJA disamakan
-     * dengan nama event yang dikirim ke constructor GameEvent di bawah,
-     * supaya 1 baris di tabel event_wave_config jelas milik event yang mana.
-     */
     private static final String EVENT_KEY = "GERBANG_ARWAH";
 
-    /**
-     * WaveConfig(waveNumber, mobTemplateId, mobCount, mobHp, mobDamage, mobDef, spawnX, spawnY, isBossWave)
-     *
-     * Ini HANYA fallback bawaan kode — dipakai kalau tabel `event_wave_config`
-     * belum diisi/gagal diakses saat event mulai (lihat loadWaves()). Cara
-     * normal mengatur wave sekarang lewat DB, BUKAN edit konstanta ini:
-     * GM bisa isi baris di `event_wave_config` (mob biasa ATAUPUN boss,
-     * boleh dicampur per wave lewat kolom is_boss_wave), lalu reload lewat
-     * menu GM "Reload Wave Event" (adminReloadWaves()) tanpa restart server.
-     *
-     * Isi default di bawah masih mengikuti setup lama: semua wave world boss
-     * (2 boss/wave). spawnX/Y TIDAK DIPAKAI untuk penempatan boss — boss
-     * selalu spawn dekat kristal (lihat BOSS_SPAWN_X/Y di bawah), jadi
-     * nilainya cuma placeholder/kompatibilitas. Untuk mob biasa (is_boss_wave
-     * = 0 di DB), spawnX/Y JUGA tidak dipakai — mob biasa spawn dari
-     * SPAWN_POINTS gerbang (lihat startWave()).
-     *
-     * mobTemplateId diambil dari monster_template yang typeMove=10 (AI world
-     * boss) untuk wave boss, SENGAJA beda dari ID yang dipakai di tabel
-     * boss_premium (233 Rock Joe, 235 Dagnu, 236 Dagon, 238 Blink) supaya
-     * boss event ini tidak numpuk/duplikat sama world boss premium map
-     * 111-114:
-     *   Wave 1 = 221 Malaikat Maut
-     *   Wave 2 = 223 Kunti Mantan
-     *   Wave 3 = 226 Goblin Etanol
-     *   Wave 4 = 229 Kecoa
-     *   Wave 5 (final) = 234 Dagan
-     * mobHp/mobDamage/mobDef di bawah TETAP dipakai (override HP/damage/def
-     * bawaan template saat spawn — lihat startWave() & MainObject.setBaseDefense()),
-     * jadi angka hp/dame/def asli di monster_template untuk ID-ID ini tidak
-     * berpengaruh ke event ini (berlaku sama untuk baris yang datang dari DB).
-     */
     private static final List<WaveConfig> DEFAULT_WAVES = List.of(
         new WaveConfig(1, (short)221, 2,  3_000_000,  30_000,  5_000, (short)(25*24), (short)(15*24), true),
         new WaveConfig(2, (short)223, 2,  5_000_000,  50_000,  8_000, (short)(25*24), (short)(15*24), true),

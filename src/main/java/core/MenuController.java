@@ -124,12 +124,12 @@ public class MenuController {
             }
 
             // ── Event Halloween "Malam Suro" 🎃 ─────────────────────────────
-            case -132: { // Dukun
-                menu = new String[]{"Lakukan Ritual", "Informasi Bahan"};
-                break;
-            }
             case -131: { // Banaspati
                 menu = new String[]{"Rasakan Aura", "Informasi"};
+                break;
+            }
+            case -132: { // Dukun
+                menu = new String[]{"Lakukan Ritual", "Informasi Bahan"};
                 break;
             }
             case -133: { // Pocong

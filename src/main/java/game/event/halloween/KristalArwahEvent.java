@@ -17,8 +17,8 @@ public class KristalArwahEvent extends MobInMap {
 
     public static final int TEMPLATE_ID = 64; // ga ngaruh
 
-    public static final short KRISTAL_X = (short) (20 * 24); // lokasi kristal
-    public static final short KRISTAL_Y = (short) (20 * 24); // lokasi kristal
+    public static final short KRISTAL_X = (short) (15 * 24); // lokasi kristal
+    public static final short KRISTAL_Y = (short) (15 * 24); // lokasi kristal
 
     public static final int LILIN_VISUAL_ID = 0; // beda dari OBJECT_ID di bawah & dari LILIN_VISUAL_ID Kemerdekaan (31000), jangan sampai bentrok
     // FIX BAR HP MENCENG: client menghitung posisi HP bar dari ukuran sprite (graphic id) di paket -44.
