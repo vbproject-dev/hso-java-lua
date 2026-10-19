@@ -5596,11 +5596,12 @@ public class MenuController {
         Vgo vgo = null;
         switch (index) {
             case 0: { // kota pelabuhan
-                vgo = new Vgo();
-                vgo.toMap = 67;
-                vgo.toX = 576;
-                vgo.toY = 222;
-                conn.p.changeMap(conn.p, vgo);
+                // vgo = new Vgo();
+                // vgo.toMap = 67;
+                // vgo.toX = 576;
+                // vgo.toY = 222;
+                // conn.p.changeMap(conn.p, vgo);
+                Service.send_notice_box(conn, "Area ini sedang ada kontruksi ulang");
                 break;
             } 
             case 1: { // kota harta karun
