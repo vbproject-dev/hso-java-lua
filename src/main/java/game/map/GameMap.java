@@ -174,28 +174,10 @@ public class GameMap {
     }
 
     private void auto_chat_npc() {
-    try {
-        switch (this.mapId) {
-            case 4:
-                NpcChat.chat(this, NpcChat.CHAT_MR_BALLARD, -53);
-                break;
-            case 1:
-                NpcChat.chat(this, NpcChat.CHAT_TOP, -49);
-                NpcChat.chat(this, NpcChat.CHAT_PHO_CHI_HUY, -37);
-                NpcChat.chat(this, NpcChat.CHAT_PHAP_SU, -36);
-                NpcChat.chat(this, NpcChat.CHAT_ZORO, -2);
-                NpcChat.chat(this, NpcChat.CHAT_AMAN, -7);
-                NpcChat.chat(this, NpcChat.CHAT_ODA, -81);
-                NpcChat.chat(this, NpcChat.CHAT_LISA, -3);
-                NpcChat.chat(this, NpcChat.CHAT_SOPHIA, -69);
-                NpcChat.chat(this, NpcChat.CHAT_HAMMER, -5);
-                NpcChat.chat(this, NpcChat.CHAT_ZULU, -8);
-                NpcChat.chat(this, NpcChat.CHAT_DOUBA, -4);
-                NpcChat.chat(this, NpcChat.CHAT_ANNA, -44);
-                break;
-            }
+        try {
+            NpcChat.autoChat(this);
         } catch (IOException e) {
-        e.printStackTrace();
+            e.printStackTrace();
         }
     }
     public void onUpdate() {

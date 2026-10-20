@@ -30,7 +30,7 @@ public class MalamSuroAmbush extends GameEvent {
 
     // set map_id yang boleh kedatangan hantu ambush. Kosong = semua map boleh.
     private static final Set<Integer> AMBUSH_MAP_IDS = Set.of(
-        1, 2, 3   
+        118, 119, 120  
     );
 
     // Kalau spawn gagal (mis. map di daftar belum ter-load / template mob
