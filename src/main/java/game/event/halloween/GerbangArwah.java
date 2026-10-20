@@ -29,10 +29,10 @@ import lombok.extern.slf4j.Slf4j;
 public class GerbangArwah extends GameEvent {
 
     // ── Konstanta map ─────────────────────────────────────────────────────────
-    public static final byte  MAP_ID        = 121;
+    public static final byte  MAP_ID        = 117;
     public static final byte  ZONE_ID       = 0;
-    private static final short PLAYER_SPAWN_X = (short)(10 * 24);
-    private static final short PLAYER_SPAWN_Y = (short)(10 * 24);
+    private static final short PLAYER_SPAWN_X = (short)(20 * 24);
+    private static final short PLAYER_SPAWN_Y = (short)(20 * 24);
     private static final int   VILLAGE_MAP   = 1;
     private static final short VILLAGE_X     = 320;
     private static final short VILLAGE_Y     = 320;

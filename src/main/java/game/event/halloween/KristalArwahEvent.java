@@ -17,8 +17,8 @@ public class KristalArwahEvent extends MobInMap {
 
     public static final int TEMPLATE_ID = 64; // ga ngaruh
 
-    public static final short KRISTAL_X = (short) (15 * 24); // lokasi kristal
-    public static final short KRISTAL_Y = (short) (15 * 24); // lokasi kristal
+    public static final short KRISTAL_X = (short) (20 * 24); // lokasi kristal
+    public static final short KRISTAL_Y = (short) (20 * 24); // lokasi kristal
 
     public static final int LILIN_VISUAL_ID = 0;
     public static final short LILIN_GRAPHIC_ID = 69;
