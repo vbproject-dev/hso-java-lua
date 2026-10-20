@@ -88,6 +88,8 @@ public class GameMap {
     public final CopyOnWriteArrayList<MobInMap> Boss_entrys = new CopyOnWriteArrayList<>();
     public final CopyOnWriteArrayList<MobAi> Ai_entrys;
     public UseItemArena Arena;
+    private long timeNextNpcChat = 0;
+    private static final long NPC_CHAT_INTERVAL = 15_000; // 15 detik, ubah sesuai selera
 
     public MapData mapData;
 
@@ -170,6 +172,32 @@ public class GameMap {
         }
 
     }
+
+    private void auto_chat_npc() {
+    try {
+        switch (this.mapId) {
+            case 4:
+                NpcChat.chat(this, NpcChat.CHAT_MR_BALLARD, -53);
+                break;
+            case 1:
+                NpcChat.chat(this, NpcChat.CHAT_TOP, -49);
+                NpcChat.chat(this, NpcChat.CHAT_PHO_CHI_HUY, -37);
+                NpcChat.chat(this, NpcChat.CHAT_PHAP_SU, -36);
+                NpcChat.chat(this, NpcChat.CHAT_ZORO, -2);
+                NpcChat.chat(this, NpcChat.CHAT_AMAN, -7);
+                NpcChat.chat(this, NpcChat.CHAT_ODA, -81);
+                NpcChat.chat(this, NpcChat.CHAT_LISA, -3);
+                NpcChat.chat(this, NpcChat.CHAT_SOPHIA, -69);
+                NpcChat.chat(this, NpcChat.CHAT_HAMMER, -5);
+                NpcChat.chat(this, NpcChat.CHAT_ZULU, -8);
+                NpcChat.chat(this, NpcChat.CHAT_DOUBA, -4);
+                NpcChat.chat(this, NpcChat.CHAT_ANNA, -44);
+                break;
+            }
+        } catch (IOException e) {
+        e.printStackTrace();
+        }
+    }
     public void onUpdate() {
         try {
 
@@ -177,6 +205,11 @@ public class GameMap {
             update_AI();
             if (GameMap.isSummonMap(this, true)) {
                 updateClone();
+            }
+            long now = System.currentTimeMillis();
+            if (now >= timeNextNpcChat) {
+                timeNextNpcChat = now + NPC_CHAT_INTERVAL;
+                auto_chat_npc();
             }
             if (Battlefield.gI().getStatus() == 2 && GameMap.isBattlefieldMap(this.mapId)) {
 

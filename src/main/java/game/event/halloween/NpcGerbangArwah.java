@@ -6,19 +6,6 @@ import model.map.Vgo;
 
 import java.io.IOException;
 
-/**
- * NpcGerbangArwah — NPC info & teleport ke arena Gerbang Arwah (id: -128)
- *
- * Tidak ada pendaftaran — player langsung masuk ke map event.
- * Siapapun yang ada di map berkontribusi melindungi Kristal Arwah.
- *
- * Sudah didaftarkan di MenuController (request_menu() & handleDynamicMenu(),
- * case -128) — lihat blok "Event Halloween Malam Suro" di file itu.
- *
- * Menu:
- *   0 → Langsung teleport ke map event (GerbangArwah.MAP_ID)
- *   default → Info event & status kristal
- */
 public class NpcGerbangArwah {
 
     public static void onReceivedMenu(Session s, int index) throws IOException {
@@ -44,7 +31,7 @@ public class NpcGerbangArwah {
                     s.p.sendNoticeBox(
                         "Gerbang Arwah belum aktif.\n" +
                         "Event dibuka setiap hari pukul 21:00 - 22:00\n" +
-                        "selama Event Halloween berlangsung!"
+                        "selama Event Malam Suro berlangsung!"
                     );
                     return;
                 }
@@ -57,8 +44,8 @@ public class NpcGerbangArwah {
                 ));
                 Service_notice(s,
                     "[Gerbang Arwah] Kamu telah masuk ke arena!\n" +
-                    "Lindungi Api Ritual dari serangan gerombolan hantu!\n" +
-                    "Jika Api Ritual hancur, SEMUA player tidak bisa klaim hadiah!"
+                    "Lindungi Api Ritual dari serangan gerombolan Demit Jahat!\n" +
+                    "Jika Api Ritual hancur, SEMUA player tidak bisa klaim Jimat Jelangkung sebagai pelindung!"
                 );
             }
 
@@ -66,7 +53,7 @@ public class NpcGerbangArwah {
             default -> {
                 StringBuilder info = new StringBuilder();
                 info.append("=== GERBANG ARWAH ===\n\n");
-                info.append("Bagian dari Event Halloween \"Malam Suro\".\n");
+                info.append("Bagian dari Event \"Malam Suro\".\n");
                 info.append("Jadwal: Setiap hari pukul 21:00 - 22:00\n\n");
 
                 if (wave == null || !wave.isActive()) {
@@ -111,7 +98,7 @@ public class NpcGerbangArwah {
                 info.append("- Semua player bisa masuk tanpa daftar\n");
                 info.append("- Bunuh monster sebelum mencapai api ritual\n");
                 info.append("- Jika api ritual hancur, hadiah DIKUNCI\n");
-                info.append("- Jika api ritual selamat, semua bisa klaim hadiah!\n\n");
+                info.append("- Jika api ritual selamat, semua bisa klaim Jimat Jelangkung!\n\n");
                 info.append("Total Wave: ").append(wave != null ? wave.getTotalWaves() : WAVES_TOTAL).append("\n");
                 info.append("(Wave terakhir adalah BOSS WAVE!)");
 

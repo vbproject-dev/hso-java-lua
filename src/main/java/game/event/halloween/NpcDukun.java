@@ -8,22 +8,6 @@ import game.items.models.RequiredItem;
 
 import java.io.IOException;
 
-/**
- * NpcDukun — NPC Ritual Sesajen Malam Suro (id: -124)
- *
- * Pemain kumpulkan bahan sesajen (item drop biasa selama Halloween, diatur
- * lewat quest/drop rate seperti biasa) lalu tukarkan ke Dukun untuk ritual
- * ruwatan, dan menerima Jimat Malam Suro (item7, lihat MalamSuroAmbush.JIMAT_ID)
- * sebagai currency event.
- *
- * Bahan & jumlah Jimat yang didapat diatur lewat tabel `exchange_item`
- * (key = KEY_RITUAL) — SAMA PERSIS pola NpcSanta/NpcPakLurah, tidak perlu
- * edit kode Java lagi kalau GM mau ganti bahan/reward.
- *
- * Menu:
- *   0       → Lakukan Ritual (tukar bahan sesajen -> Jimat Malam Suro)
- *   default → Informasi bahan yang dibutuhkan
- */
 public class NpcDukun {
 
     private static final String KEY_RITUAL = "halloween_dukun";
@@ -70,7 +54,7 @@ public class NpcDukun {
                     info.append("(Bahan ritual belum diatur Admin.)\n");
                 }
 
-                info.append("\nSetiap ritual berhasil, kamu akan mendapat Jimat Malam Suro.");
+                info.append("\nSetiap ritual berhasil, kamu akan mendapat Jimat Jelangkung Malam Suro.");
                 s.p.sendNoticeBox(info.toString());
             }
         }

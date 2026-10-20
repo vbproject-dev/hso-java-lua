@@ -5,19 +5,6 @@ import game.event.GameEventManager;
 
 import java.io.IOException;
 
-/**
- * NpcBanaspati — NPC Roh Api Peramal (id: -125)
- *
- * Banaspati (roh api dalam folklor Jawa) berperan sebagai "penunjuk arah"
- * event MalamSuroAmbush: pemain bisa tanya ke dia untuk merasakan apakah
- * ada hantu ambush yang sedang mengintai sekarang, dan di map mana — tanpa
- * kasih tahu koordinat persis/nama pemain yang jadi target, supaya pemain
- * tetap harus cari sendiri begitu sampai di map itu.
- *
- * Menu:
- *   0       → Rasakan Aura (cek status ambush MalamSuroAmbush sekarang)
- *   default → Informasi / lore Malam Suro
- */
 public class NpcBanaspati {
 
     public static void onReceivedMenu(Session s, int index) throws IOException {

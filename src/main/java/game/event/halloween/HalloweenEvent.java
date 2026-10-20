@@ -16,10 +16,6 @@ public class HalloweenEvent extends GameEvent {
     private static final int END_MONTH   = 11;
     private static final int END_DAY     = 1;
     // ── Flag Gerbang Arwah ───────────────────────────────────────────────────
-    // Sama pola seperti kristalHancur/wavePernahDimenangkan di KemerdekaanEvent.
-    // Belum dipakai NPC manapun buat kunci/buka hadiah (belum ada NPC "Pak
-    // Lurah versi Halloween") — disiapkan duluan supaya GerbangArwah bisa
-    // langsung jalan tanpa NullPointer, tinggal dikaitkan ke NPC reward nanti.
     private boolean kristalHancur = false;
     private boolean wavePernahDimenangkan = false;
 

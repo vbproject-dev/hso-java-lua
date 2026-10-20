@@ -11,26 +11,6 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * NpcPocong — NPC Trick-or-Treat (id: -127)
- *
- * Sekali sehari per pemain, Pocong kasih kejutan random:
- *  - TREAT (70%): dapat beberapa Jimat Malam Suro gratis (item7, lihat
- *    MalamSuroAmbush.JIMAT_ID).
- *  - TRICK (30%): cuma jumpscare/dijahilin, tidak dapat apa-apa — murni
- *    flavor text, TIDAK ada efek/debuff mekanik apapun ke pemain.
- *
- * Cooldown harian disimpan IN-MEMORY (ConcurrentHashMap nama pemain ->
- * tanggal klaim terakhir) — reset otomatis begitu tanggal server berganti.
- * CATATAN: karena in-memory, cooldown ini ke-reset kalau server restart
- * (pemain bisa klaim ulang hari yang sama). Kalau butuh persist lintas
- * restart, pindahkan ke kolom DB player seperti pola daily_login lain di
- * codebase ini (lihat RewardManager).
- *
- * Menu:
- *   0       → Trick or Treat! (klaim kejutan harian)
- *   default → Informasi
- */
 public class NpcPocong {
 
     private static final Map<String, LocalDate> lastClaimDate = new ConcurrentHashMap<>();
@@ -56,8 +36,8 @@ public class NpcPocong {
             // ── Menu default: Info ─────────────────────────────────────────────
             default -> s.p.sendNoticeBox(
                 "*Pocong meloncat-loncat pelan*\n\n" +
-                "Ajak aku main \"Trick or Treat\" — sekali sehari!\n" +
-                "70% kamu dapat Jimat Malam Suro gratis, 30% cuma dikerjain (gapapa, gak rugi apa-apa kok)."
+                "Ajak aku main \"Ya Bada, Ya Badi, Ya Mayiti, Ya Batinu\" — sekali sehari!\n" +
+                "70% kamu dapat Jimat Jelangkung Malam Suro gratis, 30% cuma dikerjain (gapapa, gak rugi apa-apa kok)."
             );
         }
     }
