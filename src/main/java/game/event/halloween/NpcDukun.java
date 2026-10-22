@@ -27,7 +27,7 @@ public class NpcDukun {
 
             // ── Menu 0: Lakukan ritual (tukar sesajen -> Jimat) ──────────────
             case 0 -> {
-                ExchangeItem item = ExchangeService.gI().getItem(-124, KEY_RITUAL);
+                ExchangeItem item = ExchangeService.gI().getItem(-132, KEY_RITUAL);
                 if (item == null) {
                     s.p.sendNoticeBox("Ritual belum bisa dilakukan sekarang. Hubungi Admin!");
                     return;

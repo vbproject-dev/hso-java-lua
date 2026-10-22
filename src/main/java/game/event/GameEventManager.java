@@ -101,7 +101,7 @@ public class GameEventManager {
         return switch (npcId) {
             case -120 -> isSeasonActive(ChristmasEvent.class); // Santa
             case -121, -122, -123, -126 -> isSeasonActive(KemerdekaanEvent.class);
-            case -131, -132, -133, -134 -> isSeasonActive(HalloweenEvent.class); // Dukun, Banaspati, Pocong, Gerbang Arwah
+            case -131, -132, -133, -134, -135 -> isSeasonActive(HalloweenEvent.class); // Dukun, Banaspati, Pocong, Gerbang Arwah, Nenek Merdeka
             default -> true;
         };
     }

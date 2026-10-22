@@ -22,6 +22,7 @@ import game.event.halloween.NpcDukun;
 import game.event.halloween.NpcBanaspati;
 import game.event.halloween.NpcPocong;
 import game.event.halloween.NpcGerbangArwah;
+import game.event.halloween.NpcBapakBapak;
 
 import game.npc.NpcCredit;
 
@@ -597,6 +598,9 @@ public class MenuController {
                 break;
             case -134:
                 NpcGerbangArwah.onReceivedMenu(conn, index);
+                break;
+            case -135:
+                NpcBapakBapak.onReceivedMenu(conn, index);
                 break;
             // ─────────────────────────────────────────────────────────────────
             case -96:

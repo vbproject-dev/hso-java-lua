@@ -24,8 +24,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class MalamSuroAmbush extends GameEvent {
 
     // ── Konstanta timing ──────────────────────────────────────────────────────
-    private static final int SPAWN_INTERVAL_MIN_SEC = 180; // 3 menit
-    private static final int SPAWN_INTERVAL_MAX_SEC = 480; // 8 menit
+    private static final int SPAWN_INTERVAL_MIN_SEC = 7200; // 3 menit
+    private static final int SPAWN_INTERVAL_MAX_SEC = 7200; // 8 menit
     private static final int AMBUSH_LIFETIME_SEC     = 300; // 5 menit: kalau gak ada yang bunuh, hantu hilang begitu saja
 
     // set map_id yang boleh kedatangan hantu ambush. Kosong = semua map boleh.
