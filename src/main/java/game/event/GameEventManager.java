@@ -98,17 +98,33 @@ public class GameEventManager {
      * (default) selalu tampil seperti biasa.
      */
     public boolean isEventNpcVisible(int npcId) {
+        // NPC milik global_event (tabel DB, jendela start_time..end_time) selalu tampil selama
+        // global event-nya aktif, tanpa bergantung pada flag/jendela tanggal event Java
+        // (mis. -135 Malam Suro, -123 Kemerdekaan).
+        GlobalEvent ge = globalEventMap.get(npcId);
+        if (ge != null && isActive(ge)) return true;
         return switch (npcId) {
             case -120 -> isSeasonActive(ChristmasEvent.class); // Santa
-            case -121, -122, -123, -126 -> isSeasonActive(KemerdekaanEvent.class);
-            case -131, -132, -133, -134, -135 -> isSeasonActive(HalloweenEvent.class); // Dukun, Banaspati, Pocong, Gerbang Arwah, Nenek Merdeka
+            case -121, -122, -123 -> isSeasonActive(KemerdekaanEvent.class); // Paskibraka, Pak Lurah, Nenek Merdeka
+            // Penjaga Persimpangan: butuh musim Kemerdekaan AKTIF + flag persimpangan ON
+            case -126 -> isSeasonActive(KemerdekaanEvent.class) && isFlagOn(PersimpanganKematian.class);
+            // Banaspati, Dukun, Pocong, Bapak-Bapak: musim Halloween
+            case -131, -132, -133, -135 -> isSeasonActive(HalloweenEvent.class);
+            // Gerbang Arwah: musim Halloween AKTIF + flag gerbang_arwah ON
+            case -134 -> isSeasonActive(HalloweenEvent.class) && isFlagOn(GerbangArwah.class);
             default -> true;
         };
     }
 
+    /** Event terdaftar DAN flag hso.conf masih ON (menutup celah reload config saat server jalan). */
+    private boolean isFlagOn(Class<? extends GameEvent> clazz) {
+        GameEvent event = getEvent(clazz);
+        return event != null && event.isEnabled();
+    }
+
     private boolean isSeasonActive(Class<? extends GameEvent> clazz) {
         GameEvent event = getEvent(clazz);
-        return event != null && !event.shouldBeRemoved();
+        return event != null && event.isEnabled() && !event.shouldBeRemoved();
     }
 
     public List<GlobalEvent> getAllEvents() {

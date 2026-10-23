@@ -19,6 +19,7 @@ import game.ai.PlayerBot;
 import game.event.GameEventManager;
 import game.event.kemerdekaan.KemerdekaanEvent;
 import game.event.kemerdekaan.PersimpanganKematian;
+import game.event.halloween.HalloweenEvent;
 import game.event.halloween.GerbangArwah;
 import game.event.halloween.KristalArwahEvent;
 import game.guild.GuildService;
@@ -378,8 +379,8 @@ public class MessageHandler {
                 }
 
                 // FIX Halloween: id NPC dikirim ke client sebagai BYTE (-128..127).
-                // NPC -131..-134 ter-wrap jadi 125..122 di wire; kembalikan ke id asli.
-                if (npcId >= 122 && npcId <= 125) {
+                // NPC -131..-135 ter-wrap jadi 125..121 di wire; kembalikan ke id asli.
+                if (npcId >= 121 && npcId <= 125) {
                     npcId -= 256;
                 }
 
@@ -797,6 +798,11 @@ public class MessageHandler {
             Service.send_notice_nobox_yellow(conn,
                 "🇮🇩 Event Kemerdekaan Indonesia sedang aktif! Temui Paskibraka, Pak Lurah, " +
                 "dan Nenek Merdeka di desa untuk hadiah spesial 17 Agustus!");
+        }
+        HalloweenEvent halloweenEvent = GameEventManager.gI().getEvent(HalloweenEvent.class);
+        if (halloweenEvent != null && !halloweenEvent.shouldBeRemoved()) {
+            Service.send_notice_nobox_yellow(conn,
+                "🎃 Event Malam Suro sedang aktif! Seimbangkan antara dunia nyata dan dunia gaib!");
         }
         // ──────────────────────────────────────────────────────────────────────
 

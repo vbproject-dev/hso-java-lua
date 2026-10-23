@@ -1317,12 +1317,31 @@ public class GameMap {
         Message m = new Message(-50);
         List<Point> points = mapData.getNpc();
         try {
+            // FIX: sebelumnya jumlah NPC (points.size()) ditulis SEBELUM filter, jadi saat NPC
+            // event disembunyikan (continue) jumlah di header != jumlah NPC yang benar-benar
+            // dikirim -> client salah baca packet (NPC lain hilang/rusak, "kadang tidak muncul").
+            // Juga NPE kalau id NPC tidak ada di tabel `npc`, yang membatalkan SELURUH packet.
+            List<Point> visible = new ArrayList<>();
+            List<NpcData> visibleData = new ArrayList<>();
+            if (points != null) {
+                for (Point point : points) {
+                    NpcData npcData = MapManager.getInstance().getNpcData(point.getId());
+                    if (npcData == null) {
+                        log.warn("sendNpcData: NPC id {} di map {} tidak ada di tabel npc, dilewati",
+                                point.getId(), this.mapId);
+                        continue;
+                    }
+                    if (!GameEventManager.gI().isEventNpcVisible(npcData.getId()))
+                        continue;
+                    visible.add(point);
+                    visibleData.add(npcData);
+                }
+            }
 
-            m.writer().writeByte(points.size());
-            for (Point point : points) {
-                NpcData npcData = MapManager.getInstance().getNpcData(point.getId());
-                if (!GameEventManager.gI().isEventNpcVisible(npcData.getId()))
-                    continue;
+            m.writer().writeByte(visible.size());
+            for (int i = 0; i < visible.size(); i++) {
+                Point point = visible.get(i);
+                NpcData npcData = visibleData.get(i);
 
                 // Write NPC data
                 m.writer().writeUTF(npcData.getName());

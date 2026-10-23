@@ -2243,6 +2243,7 @@ public class MenuManager {
 
         menus.menu("Guide", p -> {
             StringBuilder bahan = new StringBuilder();
+            StringBuilder hadiah = new StringBuilder();
             String startStr = event.getStartTime().format(DateTimeFormatter.ofPattern("dd MMMM", new Locale("id", "ID")));
             String endStr = event.getEndTime().format(DateTimeFormatter.ofPattern("dd MMMM", new Locale("id", "ID")));
             String time = "Waktu event: "+ startStr +" sampai "+ endStr;
@@ -2250,8 +2251,17 @@ public class MenuManager {
 
                 bahan.append(" - ").append(ExchangeService.resolveItemName(it)).append(" ").append(it.getQuantity()).append(" pcs \n");
             }
+            if (event.getReward() != null && event.getReward().getItems() != null) {
+                for (model.item.Item r : event.getReward().getItems()) {
+                    String nama = ExchangeService.resolveItemName(
+                            new RequiredItem(r.getItemId(), r.getQuantity(), r.getCategory()));
+                    hadiah.append("Hadiah Tukar: ").append(nama)
+                        .append(" ").append(r.getQuantity()).append(" pcs\n");
+                }
+            }
+            String guide = event.getGuide() != null ? event.getGuide() : "";
 
-            Service.sendChatTab(p.conn, event.getName(), String.format("\n%s\n %s\n %s\n", event.getGuide(), bahan, time));
+            Service.sendChatTab(p.conn, event.getName(), String.format("\n%s\n %s\n %s\n %s\n", guide, bahan, hadiah, time));
         });
 
         menus.menu("Close", "Tutup", MenuManager::navigateBack);

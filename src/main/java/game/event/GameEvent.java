@@ -54,6 +54,11 @@ public abstract class GameEvent {
         return true;
     }
 
+    /** Akses publik untuk flag hso.conf (dipakai GameEventManager.isEventNpcVisible). */
+    public final boolean isEnabledInConfig() {
+        return isEnabled();
+    }
+
     public void update() {
         // FIX: kalau toggle di hso.conf dimatikan (lewat reload config saat
         // event sudah terlanjur jalan), paksa berhenti sekarang juga,
