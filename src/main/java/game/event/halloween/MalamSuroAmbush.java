@@ -69,7 +69,7 @@ public class MalamSuroAmbush extends GameEvent {
         super(
             "Malam Suro - Teror Dadakan",
             EnumSet.allOf(DayOfWeek.class),
-            List.of(new TimeEvent(LocalTime.MIN, LocalTime.MAX))
+            List.of(new TimeEvent(LocalTime.of(18, 0), LocalTime.of(22, 0)))
         );
     }
 
