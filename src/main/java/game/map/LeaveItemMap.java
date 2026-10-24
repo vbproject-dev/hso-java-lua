@@ -9,6 +9,7 @@ import model.map.MapDropConfig;
 
 import client.Player;
 import core.Util;
+import core.Service;
 import game.event.GameEvent;
 import game.event.GameEventManager;
 import game.event.natal.ChristmasEvent;
@@ -105,6 +106,18 @@ public class LeaveItemMap {
                         }
                         for (int i = 0; i < qty; i++)
                             leave_item_by_type7(gameMap, indexItem7, p, mob.objectId);
+                        break;
+                    case 10: // GOLD
+                        leave_gold(gameMap, mob, p, qty);
+                        break;
+                    case 11: // GEMS
+                        if (qty > 0 && p != null) {
+                            p.updateGem(qty);
+                            try {
+                                Service.send_notice_nobox_white(p.conn, "Kamu mendapatkan " + qty + " gems");
+                            } catch (IOException ignore) {
+                            }
+                        }
                         break;
                     default:
                         break;

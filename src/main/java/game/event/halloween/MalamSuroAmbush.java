@@ -237,21 +237,24 @@ public class MalamSuroAmbush extends GameEvent {
     }
 
     // ── Helper ───────────────────────────────────────────────────────────────
-
-    /** Pilih 1 map (dan 1 zone) acak dari AMBUSH_MAP_IDS. Tidak butuh ada pemain di dalamnya. */
     private GameMap pickRandomAmbushMap() {
-        List<GameMap> candidates = new ArrayList<>();
+        java.util.Map<Integer, List<GameMap>> byMap = new java.util.LinkedHashMap<>();
         for (GameMap[] zones : GameMap.entrys) {
             if (zones == null) continue;
             for (GameMap zone : zones) {
                 if (zone == null) continue;
-                // Whitelist (kosong = semua map boleh).
-                if (!AMBUSH_MAP_IDS.isEmpty() && !AMBUSH_MAP_IDS.contains((int) zone.mapId)) continue;
-                candidates.add(zone);
+                int id = zone.mapId;
+                if (!AMBUSH_MAP_IDS.isEmpty() && !AMBUSH_MAP_IDS.contains(id)) continue;
+                byMap.computeIfAbsent(id, k -> new ArrayList<>()).add(zone);
             }
         }
-        if (candidates.isEmpty()) return null;
-        return candidates.get(Util.random(candidates.size() - 1));
+        if (byMap.isEmpty()) return null;
+
+        List<Integer> ids = new ArrayList<>(byMap.keySet());
+        int pickedId = ids.get(Util.nextInt(ids.size()));
+        List<GameMap> zones = byMap.get(pickedId);
+        log.info("[MalamSuroAmbush] Map ter-load dari whitelist {} -> terpilih {}", ids, pickedId);
+        return zones.get(Util.nextInt(zones.size()));
     }
 
     /**

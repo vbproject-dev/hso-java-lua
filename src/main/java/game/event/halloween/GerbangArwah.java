@@ -83,23 +83,8 @@ public class GerbangArwah extends GameEvent {
         new WaveConfig(5, (short)234, 2, 20_000_000, 200_000, 25_000, (short)(25*24), (short)(15*24), true)
     );
 
-    /**
-     * Daftar wave yang benar-benar dipakai saat ini. Diisi dari DB (lihat
-     * loadWaves()) tiap kali event mulai (onStart()) supaya perubahan yang
-     * GM lakukan di tabel event_wave_config sebelum event jalan otomatis
-     * kepakai — tidak perlu restart server. Fallback ke DEFAULT_WAVES kalau
-     * DB kosong/gagal.
-     */
     private List<WaveConfig> WAVES = DEFAULT_WAVES;
 
-    // ── Titik spawn gerbang persimpangan ─────────────────────────────────────
-    // Diambil dari 3 tanda merah di map (Utara/Barat/Timur menuju persimpangan).
-    // {x, y, orientation}: orientation menentukan arah formasi mob mengular
-    // supaya sejajar jalan (bukan malah nembus pohon di pinggir jalan):
-    //   0 = jalur vertikal (Utara)  -> lebar formasi di X, memanjang ke atas (Y berkurang)
-    //   1 = jalur horizontal (Barat)-> lebar formasi di Y, memanjang ke kiri  (X berkurang)
-    //   2 = jalur horizontal (Timur)-> lebar formasi di Y, memanjang ke kanan (X bertambah)
-    // GANTI koordinat ini kalau posisi jalan di map kamu beda.
     private static final short[][] SPAWN_POINTS = {
         {(short) (19 * 24), (short) (3 * 24), 0},   // Utara
         {(short) (2 * 24),  (short) (20 * 24), 1},  // Barat
@@ -107,11 +92,6 @@ public class GerbangArwah extends GameEvent {
     };
     private static final int SPAWN_FORMATION_WIDTH = 5; // lebar formasi (tile) tegak lurus jalan
 
-    // ── Titik spawn khusus BOSS ──────────────────────────────────────────────
-    // Boss TIDAK spawn dari gerbang jauh seperti mob biasa — langsung muncul
-    // dekat kristal (5 tile di utara kristal) supaya begitu wave boss mulai,
-    // dia cuma butuh beberapa langkah buat "sampai" dan momen-nya lebih
-    // dramatis/langsung, bukan jalan jauh dari luar map.
     private static final short BOSS_SPAWN_X = KristalArwahEvent.KRISTAL_X;
     private static final short BOSS_SPAWN_Y = (short) (KristalArwahEvent.KRISTAL_Y - 5 * 24);
     // Jarak antar boss (px) supaya 2 boss dalam 1 wave tidak spawn dobel di titik sama.
