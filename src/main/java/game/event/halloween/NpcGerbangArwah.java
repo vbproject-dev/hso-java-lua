@@ -18,7 +18,7 @@ public class NpcGerbangArwah {
         if (halloween == null || halloween.shouldBeRemoved()) {
             s.p.sendNoticeBox(
                 "Gerbang Arwah hanya tersedia selama\n" +
-                "Event Halloween \"Malam Suro\" (25 Okt - 1 Nov)."
+                "Event Halloween \"Malam Suro\" (25 Okt - 25 Nov)."
             );
             return;
         }
@@ -30,7 +30,7 @@ public class NpcGerbangArwah {
                 if (wave == null || !wave.isActive()) {
                     s.p.sendNoticeBox(
                         "Gerbang Arwah belum aktif.\n" +
-                        "Event dibuka setiap hari pukul 21:00 - 22:00\n" +
+                        "Event dibuka setiap hari pukul 20:00 - 20:30\n" +
                         "selama Event Malam Suro berlangsung!"
                     );
                     return;

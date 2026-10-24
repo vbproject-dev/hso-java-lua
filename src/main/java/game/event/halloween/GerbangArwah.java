@@ -106,7 +106,7 @@ public class GerbangArwah extends GameEvent {
         super(
             "GERBANG_ARWAH",
             EnumSet.allOf(DayOfWeek.class),
-            List.of(new TimeEvent(LocalTime.of(12,35), LocalTime.of(15, 0)))
+            List.of(new TimeEvent(LocalTime.of(20,0), LocalTime.of(20, 30)))
         );
     }
 
