@@ -11,10 +11,10 @@ import java.util.Set;
 
 public class HalloweenEvent extends GameEvent {
 
-    private static final int START_MONTH = 9;
+    private static final int START_MONTH = 10;
     private static final int START_DAY   = 25;
     private static final int END_MONTH   = 11;
-    private static final int END_DAY     = 1;
+    private static final int END_DAY     = 25;
     // ── Flag Gerbang Arwah ───────────────────────────────────────────────────
     private boolean kristalHancur = false;
     private boolean wavePernahDimenangkan = false;

@@ -54,7 +54,7 @@ public class NpcGerbangArwah {
                 StringBuilder info = new StringBuilder();
                 info.append("=== GERBANG ARWAH ===\n\n");
                 info.append("Bagian dari Event \"Malam Suro\".\n");
-                info.append("Jadwal: Setiap hari pukul 21:00 - 22:00\n\n");
+                info.append("Jadwal: Setiap hari pukul 20:00 - 20:30\n\n");
 
                 if (wave == null || !wave.isActive()) {
                     // Tampilkan status hadiah (TODO: kaitkan ke NPC reward Halloween begitu ada)
@@ -65,7 +65,7 @@ public class NpcGerbangArwah {
                         info.append("Status Api Ritual: SELAMAT\n");
                         info.append("Hadiah: TERBUKA\n\n");
                     } else {
-                        info.append("Status: Menunggu wave malam ini (21:00)\n\n");
+                        info.append("Status: Menunggu wave malam ini (20:00)\n\n");
                     }
                 } else {
                     switch (wave.getState()) {
