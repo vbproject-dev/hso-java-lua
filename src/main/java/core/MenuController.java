@@ -130,7 +130,7 @@ public class MenuController {
                 break;
             }
             case -132: { // Dukun
-                menu = new String[]{"Lakukan Ritual", "Informasi Bahan"};
+                menu = new String[]{"Lakukan Ritual", "Informasi Bahan", "Top Penukaran"};
                 break;
             }
             case -133: { // Pocong

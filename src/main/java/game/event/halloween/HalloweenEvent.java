@@ -87,6 +87,12 @@ public class HalloweenEvent extends GameEvent {
         );
     }
 
+    /** Dipanggil GerbangArwah.onStart(): status hadiah dihitung ulang tiap malam. */
+    public void resetHarian() {
+        this.kristalHancur = false;
+        this.wavePernahDimenangkan = false;
+    }
+
     /** Apakah klaim hadiah gerbang arwah saat ini dikunci? (disiapkan buat NPC reward nanti) */
     public boolean isHadiahDikunci() {
         return kristalHancur;

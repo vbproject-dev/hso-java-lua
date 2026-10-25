@@ -17,6 +17,8 @@ import template.MobTemplate;
 
 import java.io.IOException;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.LocalTime;
 import core.Util;
 import java.util.ArrayList;
@@ -45,6 +47,13 @@ public class GerbangArwah extends GameEvent {
     private PersimpanganState state = PersimpanganState.CLOSED;
     private int timer               = 0;
     private int currentWaveIndex    = 0;
+
+    /** Hasil akhir event malam ini (null = belum selesai / belum pernah jalan). */
+    public enum Hasil { MENANG, KALAH, WAKTU_HABIS }
+    private Hasil     hasilTerakhir  = null;
+    private LocalDate tanggalSelesai = null;
+    private LocalTime waktuSelesai   = null;
+    private static final DateTimeFormatter JAM_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     private final CopyOnWriteArrayList<MobInMap> activeMobs = new CopyOnWriteArrayList<>();
     private KristalArwahEvent kristal;
@@ -125,6 +134,12 @@ public class GerbangArwah extends GameEvent {
             return;
         }
 
+        // Event baru dimulai -> hasil & status hadiah kemarin dibersihkan
+        hasilTerakhir  = null;
+        tanggalSelesai = null;
+        waktuSelesai   = null;
+        if (halloween != null) halloween.resetHarian();
+
         loadWaves();
 
         state            = PersimpanganState.COUNTDOWN;
@@ -160,6 +175,7 @@ public class GerbangArwah extends GameEvent {
         if (state == PersimpanganState.WAVE || state == PersimpanganState.REST
                 || state == PersimpanganState.COUNTDOWN) {
             // Event selesai sebelum waktunya (misal server jam sudah lewat)
+            catatHasil(Hasil.WAKTU_HABIS);
             broadcast("[Malam Suro] Waktu habis, event dihentikan.");
             clearMobsFromMap();
             teleportAllToVillage();
@@ -354,10 +370,12 @@ public class GerbangArwah extends GameEvent {
         if (state == PersimpanganState.DEFEAT) return;
         state = PersimpanganState.DEFEAT;
         clearMobsFromMap();
+        catatHasil(Hasil.KALAH);
 
         // Kunci hadiah di event halloween
         HalloweenEvent halloween = GameEventManager.gI().getEvent(HalloweenEvent.class);
         if (halloween != null) halloween.onKristalHancur();
+        umumkanSelesai(Hasil.KALAH, 5);
 
         // Teleport semua player keluar setelah 5 detik
         new Thread(() -> {
@@ -370,9 +388,11 @@ public class GerbangArwah extends GameEvent {
     private void triggerVictory(HalloweenEvent halloween) {
         state = PersimpanganState.VICTORY;
         clearMobsFromMap();
+        catatHasil(Hasil.MENANG);
 
         // Buka hadiah Gerbang Arwah untuk semua player
         if (halloween != null) halloween.onKristalSelamat();
+        umumkanSelesai(Hasil.MENANG, 10);
 
         // Teleport semua player pulang setelah 10 detik
         new Thread(() -> {
@@ -380,6 +400,83 @@ public class GerbangArwah extends GameEvent {
             teleportAllToVillage();
             cleanup();
         }).start();
+    }
+
+    // ── Status & pengumuman hasil event ───────────────────────────────────────
+
+    private void catatHasil(Hasil hasil) {
+        hasilTerakhir  = hasil;
+        tanggalSelesai = LocalDate.now();
+        waktuSelesai   = LocalTime.now();
+    }
+
+    /** Jam selesai jadwal otomatis (mis. 21:00), atau null kalau tidak ada. */
+    private LocalTime jadwalSelesai() {
+        List<TimeEvent> te = getTimeEvents();
+        return (te == null || te.isEmpty()) ? null : te.get(0).end();
+    }
+
+    private LocalTime jadwalMulai() {
+        List<TimeEvent> te = getTimeEvents();
+        return (te == null || te.isEmpty()) ? null : te.get(0).start();
+    }
+
+    /** Teks jadwal, mis. "20:00 - 21:00" (selalu sinkron dengan konstruktor). */
+    public String getJadwalText() {
+        LocalTime a = jadwalMulai(), b = jadwalSelesai();
+        return (a == null || b == null) ? "-" : a.format(JAM_FMT) + " - " + b.format(JAM_FMT);
+    }
+
+    /**
+     * Umumkan hasil ke SELURUH server (supaya player yang masih di desa tahu
+     * event sudah selesai & tidak perlu masuk lagi) dan ke player di arena.
+     */
+    private void umumkanSelesai(Hasil hasil, int detikPulang) {
+        String hasilTxt = (hasil == Hasil.MENANG)
+                ? "Api Ritual SELAMAT, para pemberani menang!"
+                : "Api Ritual HANCUR.";
+
+        LocalTime akhir = jadwalSelesai();
+        boolean lebihCepat = !isManualOverride() && akhir != null && LocalTime.now().isBefore(akhir);
+
+        StringBuilder sb = new StringBuilder("[Gerbang Arwah] ");
+        sb.append(lebihCepat ? "Event malam ini SELESAI LEBIH CEPAT dari jadwal. "
+                             : "Event malam ini SELESAI. ");
+        sb.append(hasilTxt);
+        if (!isManualOverride() && jadwalMulai() != null) {
+            sb.append(" Gerbang Arwah dibuka lagi besok pukul ")
+              .append(jadwalMulai().format(JAM_FMT)).append(" WIB.");
+        }
+        broadcast(sb.toString());
+
+        broadcastToMap("[Malam Suro] Event selesai! " + hasilTxt
+                + " Kamu akan dipulangkan ke desa dalam " + detikPulang + " detik.");
+    }
+
+    /** TRUE kalau player boleh masuk arena sekarang (event benar-benar sedang berjalan). */
+    public boolean canEnter() {
+        return isActive() && (state == PersimpanganState.COUNTDOWN
+                || state == PersimpanganState.WAVE
+                || state == PersimpanganState.REST);
+    }
+
+    /**
+     * Ringkasan hasil event HARI INI untuk ditampilkan di NPC, atau null kalau
+     * belum ada hasil hari ini. Contoh: "Api Ritual SELAMAT (selesai 20:42)".
+     */
+    public String getRingkasanHasil() {
+        if (hasilTerakhir == null || !LocalDate.now().equals(tanggalSelesai)) return null;
+        String jam = (waktuSelesai != null) ? " (selesai " + waktuSelesai.format(JAM_FMT) + ")" : "";
+        return switch (hasilTerakhir) {
+            case MENANG      -> "Api Ritual SELAMAT" + jam;
+            case KALAH       -> "Api Ritual HANCUR" + jam;
+            case WAKTU_HABIS -> "Waktu habis, event dihentikan" + jam;
+        };
+    }
+
+    /** Teks "dibuka lagi" untuk NPC, mis. "besok pukul 20:00 WIB". */
+    public String getJadwalBerikutnyaText() {
+        return jadwalMulai() == null ? "sesuai jadwal" : "besok pukul " + jadwalMulai().format(JAM_FMT) + " WIB";
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────
@@ -658,10 +755,6 @@ public class GerbangArwah extends GameEvent {
             p.item.add_item_bag47(MalamSuroAmbush.JIMAT_ID, qty, MalamSuroAmbush.ITEM_CAT_MATERIAL);
 
             try {
-                // FIX: add_item_bag47() cuma update data di server, tidak otomatis
-                // mengirim paket refresh inventory ke client. Tanpa charInventory(7)
-                // di sini, item material baru bakal "ada" di data tapi tidak muncul
-                // di UI inventory player sampai dia logout/login ulang.
                 p.item.charInventory(7);
                 Service.Show_open_box_notice_item(
                     p, "Kamu Mendapatkan",
@@ -696,19 +789,6 @@ public class GerbangArwah extends GameEvent {
     /** Dipakai MessageHandler untuk cek apakah efek cuaca map event ini harus nyala. */
     public boolean isRunning() { return state != PersimpanganState.CLOSED; }
 
-    // ── Trigger manual GM ────────────────────────────────────────────────────
-    // Selain jadwal otomatis (setiap hari 21:00-22:00 selama 25 Okt-1 Nov),
-    // GM bisa mengaktifkan event ini kapan saja lewat menu GM (lihat
-    // MenuManager.adminUtilityMenu()), tanpa perlu menunggu jadwal ataupun
-    // periode Halloween. Event yang di-trigger manual otomatis berhenti
-    // sendiri begitu wave terakhir selesai/kristal hancur (lewat cleanup()),
-    // atau bisa dihentikan paksa GM kapan saja lewat adminForceEnd().
-
-    /**
-     * Coba mulai event ini secara manual sekarang juga.
-     *
-     * @return pesan status untuk ditampilkan ke GM.
-     */
     public String adminForceStart() {
         if (isRunning() || isActive()) {
             return "Gerbang Arwah sedang berjalan (wave " + getCurrentWave()

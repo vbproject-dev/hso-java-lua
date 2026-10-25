@@ -27,12 +27,23 @@ public class NpcGerbangArwah {
 
             // ── Menu 0: Masuk ke arena ────────────────────────────────────────
             case 0 -> {
-                if (wave == null || !wave.isActive()) {
-                    s.p.sendNoticeBox(
-                        "Gerbang Arwah belum aktif.\n" +
-                        "Event dibuka setiap hari pukul 20:00 - 20:30\n" +
-                        "selama Event Malam Suro berlangsung!"
-                    );
+                if (wave == null || !wave.canEnter()) {
+                    String hasil = (wave != null) ? wave.getRingkasanHasil() : null;
+                    if (hasil != null) {
+                        // Event malam ini sudah selesai (menang/kalah/waktu habis)
+                        s.p.sendNoticeBox(
+                            "Gerbang Arwah malam ini sudah SELESAI.\n" +
+                            "Hasil: " + hasil + "\n\n" +
+                            "Dibuka lagi " + wave.getJadwalBerikutnyaText() + "."
+                        );
+                    } else {
+                        s.p.sendNoticeBox(
+                            "Gerbang Arwah belum aktif.\n" +
+                            "Event dibuka setiap hari pukul " +
+                            (wave != null ? wave.getJadwalText() : "20:00 - 21:00") + " WIB\n" +
+                            "selama Event Malam Suro berlangsung!"
+                        );
+                    }
                     return;
                 }
                 // Teleport langsung ke arena — tidak perlu daftar
@@ -54,9 +65,20 @@ public class NpcGerbangArwah {
                 StringBuilder info = new StringBuilder();
                 info.append("=== GERBANG ARWAH ===\n\n");
                 info.append("Bagian dari Event \"Malam Suro\".\n");
-                info.append("Jadwal: Setiap hari pukul 20:00 - 20:30\n\n");
+                info.append("Jadwal: Setiap hari pukul ")
+                    .append(wave != null ? wave.getJadwalText() : "20:00 - 21:00")
+                    .append(" WIB\n\n");
 
-                if (wave == null || !wave.isActive()) {
+                String hasilHariIni = (wave != null) ? wave.getRingkasanHasil() : null;
+
+                if (hasilHariIni != null && !wave.canEnter()) {
+                    // Event sudah selesai (bisa lebih cepat dari jadwal) -> tampilkan status akhir
+                    info.append("Status: SELESAI malam ini\n");
+                    info.append("Hasil: ").append(hasilHariIni).append("\n");
+                    info.append(halloween.isHadiahDikunci() ? "Hadiah: DIKUNCI hari ini\n"
+                                : halloween.isWaveSudahMenang() ? "Hadiah: TERBUKA\n" : "");
+                    info.append("Dibuka lagi ").append(wave.getJadwalBerikutnyaText()).append(".\n\n");
+                } else if (wave == null || !wave.canEnter()) {
                     // Tampilkan status hadiah (TODO: kaitkan ke NPC reward Halloween begitu ada)
                     if (halloween.isHadiahDikunci()) {
                         info.append("Status Api Ritual: HANCUR\n");

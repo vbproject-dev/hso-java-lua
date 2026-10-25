@@ -1526,7 +1526,7 @@ public class Service {
         // if (temp != null && temp.id == 9) {
         Message m2 = new Message(28);
         m2.writer().writeShort(id); // index?
-        m2.writer().writeUTF("Vật phẩm hiển thị lỗi, hãy thoát game vào lại để reset");
+        m2.writer().writeUTF("Item tidak ditemukan, hãy keluar dari game dan masuk kembali untuk mereset");
         m2.writer().writeByte(8); // type item
         m2.writer().writeByte(0); // id part
         m2.writer().writeByte(0); // class item

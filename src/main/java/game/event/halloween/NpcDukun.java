@@ -1,6 +1,7 @@
 package game.event.halloween;
 
 import client.io.Session;
+import game.event.EventTop;
 import game.event.GameEventManager;
 import game.items.ExchangeService;
 import game.items.models.ExchangeItem;
@@ -32,8 +33,20 @@ public class NpcDukun {
                     s.p.sendNoticeBox("Ritual belum bisa dilakukan sekarang. Hubungi Admin!");
                     return;
                 }
-                ExchangeService.gI().exchange(s.p, item);
+                if (event.isHadiahDikunci()) {
+                    s.p.sendNoticeBox("Api Ritual hancur malam ini...\nRitual tidak bisa dilakukan. Coba lagi besok.");
+                    return;
+                }
+
+                int jumlah = ExchangeService.gI().getMaxExchangeCount(s.p, item.getRequirements());
+                if (ExchangeService.gI().exchange(s.p, item) && jumlah > 0) {
+                    EventTop.add(EventTop.HALLOWEEN_RITUAL, s.p.name, jumlah);
+                }
             }
+
+            // ── Menu 2: Top Penukaran ────────────────────────────────────────
+            case 2 -> s.p.sendNoticeBox(EventTop.buildText(EventTop.HALLOWEEN_RITUAL,
+                    "TOP PENUKARAN RITUAL", "x", s.p.name));
 
             // ── Menu default: Info bahan ──────────────────────────────────────
             default -> {

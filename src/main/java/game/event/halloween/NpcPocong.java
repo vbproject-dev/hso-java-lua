@@ -18,7 +18,7 @@ public class NpcPocong {
     private static final int TREAT_CHANCE_PCT = 70; // sisanya (30%) trick
 
     private static final int TREAT_JIMAT_MIN = 2;
-    private static final int TREAT_JIMAT_MAX = 5;
+    private static final int TREAT_JIMAT_MAX = 15;
 
     public static void onReceivedMenu(Session s, int index) throws IOException {
         HalloweenEvent event = GameEventManager.gI().getEvent(HalloweenEvent.class);
