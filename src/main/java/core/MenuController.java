@@ -6940,10 +6940,10 @@ public class MenuController {
                         + "  • Party Grind   — grinding bersama party (min. 2 anggota)\n"
                         + "  • Berburu Boss  — kalahkan boss (tersedia di difficulty Sulit+)\n\n"
                         + "Hadiah per difficulty:\n"
-                        + "  Sangat Mudah : Emas + Permata + EXP\n"
-                        + "  Biasa        : + Material Medali Biru\n"
-                        + "  Sulit        : + Material Medali Kuning\n"
-                        + "  Sangat Sulit : + Material Medali Ungu\n\n"
+                        + "  Sangat Mudah : [lv.1]\n"
+                        + "  Biasa        : [lv.150]\n"
+                        + "  Sulit        : [lv.200]\n"
+                        + "  Sangat Sulit : [lv.250]\n\n"
                         + "Bonus permata untuk Party Grind & Boss Hunt!\n"
                         + "Maksimal 5 misi per hari.";
                 Service.send_notice_box(conn, notice);
@@ -6954,7 +6954,7 @@ public class MenuController {
                     Service.send_notice_box(conn, "Anda sudah menerima misi!");
                 } else {
                     if (conn.p.quest_daily[4] > 0) {
-                        send_menu_select(conn, 999, new String[]{"Sangat Mudah", "Biasa", "Sulit", "Sangat Sulit"});
+                        send_menu_select(conn, 999, new String[]{"Easy Lv.1", "Medium Lv.150", "Hard Lv.200", "Expert Lv.250"});
                     } else {
                         Service.send_notice_box(conn, "Kesempatan hari ini sudah habis, kembali besok");
                     }

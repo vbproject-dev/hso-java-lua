@@ -99,14 +99,14 @@ public class GerbangArwah extends GameEvent {
     private static final int   KOIN_DROP_MIN        = 2;   // jimat per mob biasa
     private static final int   KOIN_DROP_MAX        = 5;
     private static final int   KOIN_DROP_MIN_BOSS    = 15;  // jimat per mob boss wave
-    private static final int   KOIN_DROP_MAX_BOSS    = 25;
+    private static final int   KOIN_DROP_MAX_BOSS    = 20;
 
     // ── Constructor ───────────────────────────────────────────────────────────
     public GerbangArwah() {
         super(
             "GERBANG_ARWAH",
             EnumSet.allOf(DayOfWeek.class),
-            List.of(new TimeEvent(LocalTime.of(20,0), LocalTime.of(20, 30)))
+            List.of(new TimeEvent(LocalTime.of(20,0), LocalTime.of(21, 0)))
         );
     }
 

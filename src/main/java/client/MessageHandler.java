@@ -802,7 +802,7 @@ public class MessageHandler {
         HalloweenEvent halloweenEvent = GameEventManager.gI().getEvent(HalloweenEvent.class);
         if (halloweenEvent != null && !halloweenEvent.shouldBeRemoved()) {
             Service.send_notice_nobox_yellow(conn,
-                "🎃 Event Malam Suro sedang aktif! Seimbangkan antara dunia nyata dan dunia gaib!");
+                "🎃 Malam Suro ini sangat berbahaya!, Aku Ratu Rangda memberi tugas untukmu, Gerbang pemisah telah rusak! banyak jiwa jahat berkeliaran! aku mohon bantuanmu Ksatria!!");
         }
         // ──────────────────────────────────────────────────────────────────────
 
