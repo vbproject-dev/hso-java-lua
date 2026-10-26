@@ -45,6 +45,10 @@ public class MobInMap extends MainObject {
     /** Jam terakhir boss premium spawn (mode jadwal). -1 = belum pernah. */
     public int lastSpawnedHour = -1;
     public long time_back;
+    /** Kunci penyimpanan status mati di DB (boss_kill_state). null = tidak disimpan. */
+    public String persistKey = null;
+    /** Kunci jendela event saat boss ini spawn (lihat GameEvent.currentWindowKey()). */
+    public String persistWindow = "";
     public final List<Player> list_fight = new ArrayList<>();
     public long time_fight;
     public long time_poison_tick; // timer tick DoT racun

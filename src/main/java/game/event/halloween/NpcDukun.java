@@ -64,7 +64,7 @@ public class NpcDukun {
                             .append(" ").append(it.getQuantity()).append(" pcs\n");
                     }
                 } else {
-                    info.append("(Jelangkung 100 Pcs\n Ayam Cemani 100 Pcs\n Tali Pocong 100 Pcs )\n");
+                    info.append("Jelangkung 100 Pcs\n Ayam Cemani 100 Pcs\n Tali Pocong 100 Pcs \n");
                 }
 
                 info.append("\nSetiap ritual berhasil, kamu akan mendapat Box Malam Suro.");

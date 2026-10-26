@@ -221,6 +221,11 @@ public class GameMap {
         synchronized (Boss_entrys) {
             Boss_entrys.remove(mob);
         }
+        // Simpan status mati ke DB (hanya World Boss / Premium Boss yang punya persistKey)
+        // supaya restart server tidak menghidupkan boss ini lagi di jendela event yang sama.
+        if (mob.persistKey != null) {
+            BossHDL.BossStateStore.recordKill(mob);
+        }
     }
 
     public void BossIn4(Session conn, int idx) throws IOException {

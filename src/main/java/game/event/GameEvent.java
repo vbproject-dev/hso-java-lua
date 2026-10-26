@@ -137,6 +137,26 @@ public abstract class GameEvent {
         return true;
     }
 
+    /**
+     * Kunci unik untuk jendela waktu event yang sedang berjalan, mis. "2026-10-26@21:00".
+     * Dipakai untuk menyimpan status boss yang sudah mati supaya restart server
+     * di tengah jendela yang sama tidak menghidupkannya lagi. Jendela baru (hari/jam
+     * berbeda) otomatis menghasilkan kunci baru. Event manual GM: "manual:yyyy-MM-dd".
+     */
+    protected String currentWindowKey() {
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        for (TimeEvent w : times) {
+            if (w.isInTime(now)) {
+                LocalDate d = today;
+                // jendela lintas tengah malam: setelah 00:00 tanggalnya milik hari kemarin
+                if (w.start().isAfter(w.end()) && now.isBefore(w.end())) d = today.minusDays(1);
+                return d + "@" + w.start();
+            }
+        }
+        return "manual:" + today;
+    }
+
     /** Apakah event ini sedang aktif karena di-paksa manual oleh GM (bukan jadwal). */
     public boolean isManualOverride() {
         return manualOverride;

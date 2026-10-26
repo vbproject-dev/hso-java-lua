@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class WorldBoss extends GameEvent {
@@ -49,6 +50,32 @@ public class WorldBoss extends GameEvent {
         }
 
         System.out.print(listBoss.size() + " boss loaded ");
+
+        // Pulihkan status mati dari DB: boss yang sudah dikalahkan di jendela event
+        // yang SAMA tidak hidup lagi karena server restart (hanya hidup lagi setelah
+        // respawn_at lewat, sesuai waktu respawn normalnya).
+        try {
+            String windowKey = currentWindowKey();
+            boolean restore = !isManualOverride();
+            Map<String, BossHDL.BossStateStore.State> states =
+                    restore ? BossHDL.BossStateStore.loadAll() : Map.of();
+            long now = System.currentTimeMillis();
+            int kept = 0;
+            for (MobInMap mob : listBoss) {
+                mob.persistKey = BossHDL.BossStateStore.key("WB", mob);
+                mob.persistWindow = windowKey;
+                BossHDL.BossStateStore.State st = states.get(mob.persistKey);
+                if (st != null && windowKey.equals(st.windowKey()) && st.respawnAt() > now) {
+                    mob.isdie = true;
+                    mob.is_boss_active = false;
+                    mob.time_back = st.respawnAt();
+                    kept++;
+                }
+            }
+            if (kept > 0) System.out.println("[WorldBoss] " + kept + " boss tetap mati (sudah dikalahkan sebelum restart).");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         try {
             Manager.gI().chatKTGprocess(" Waktu perburuan boss telah tiba");
