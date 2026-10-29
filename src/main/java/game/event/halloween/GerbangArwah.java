@@ -76,10 +76,10 @@ public class GerbangArwah extends GameEvent {
     private long    pendingBossWipeAt = 0; // 0 = tidak ada wipe terjadwal; selain itu = timestamp eksekusi
 
     // ── HP Kristal per wave ────────────────────────────────────────────────────
-    private static final int KRISTAL_HP = 2_000_000;
+    private static final int KRISTAL_HP = 20_000_000;
 
     private static final int KRISTAL_DRAIN_PER_TICK = 10_000;
-    private static final long KRISTAL_DRAIN_INTERVAL_MS = 1000;
+    private static final long KRISTAL_DRAIN_INTERVAL_MS = 2000; // drain HP kristal tiap 2 detik selama boss hidup
 
     // ── Konfigurasi wave ──────────────────────────────────────────────────────
     private static final String EVENT_KEY = "GERBANG_ARWAH";

@@ -699,15 +699,15 @@ public class GameMap {
                                 case 5468: { // 5468 medal evo Penyihir
                                     byte eff_ = 3;
                                     if (it.tier == 15) {
-                                        eff_ = 72;
+                                        eff_ = 71;
                                     } else if (it.tier >= 12) {
-                                        eff_ = 72;
+                                        eff_ = 71;
                                     } else if (it.tier >= 9) {
-                                        eff_ = 72;
+                                        eff_ = 71;
                                     } else if (it.tier >= 6) {
-                                        eff_ = 72;
+                                        eff_ = 71;
                                     } else if (it.tier >= 3) {
-                                        eff_ = 72;
+                                        eff_ = 71;
                                     }
                                     m.writer().writeByte(eff_);
                                     break;
