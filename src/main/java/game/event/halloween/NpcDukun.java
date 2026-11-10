@@ -1,6 +1,7 @@
 package game.event.halloween;
 
 import client.io.Session;
+import game.event.EventTop;
 import game.event.GameEventManager;
 import game.items.ExchangeService;
 import game.items.models.ExchangeItem;
@@ -8,22 +9,6 @@ import game.items.models.RequiredItem;
 
 import java.io.IOException;
 
-/**
- * NpcDukun — NPC Ritual Sesajen Malam Suro (id: -124)
- *
- * Pemain kumpulkan bahan sesajen (item drop biasa selama Halloween, diatur
- * lewat quest/drop rate seperti biasa) lalu tukarkan ke Dukun untuk ritual
- * ruwatan, dan menerima Jimat Malam Suro (item7, lihat MalamSuroAmbush.JIMAT_ID)
- * sebagai currency event.
- *
- * Bahan & jumlah Jimat yang didapat diatur lewat tabel `exchange_item`
- * (key = KEY_RITUAL) — SAMA PERSIS pola NpcSanta/NpcPakLurah, tidak perlu
- * edit kode Java lagi kalau GM mau ganti bahan/reward.
- *
- * Menu:
- *   0       → Lakukan Ritual (tukar bahan sesajen -> Jimat Malam Suro)
- *   default → Informasi bahan yang dibutuhkan
- */
 public class NpcDukun {
 
     private static final String KEY_RITUAL = "halloween_dukun";
@@ -43,13 +28,25 @@ public class NpcDukun {
 
             // ── Menu 0: Lakukan ritual (tukar sesajen -> Jimat) ──────────────
             case 0 -> {
-                ExchangeItem item = ExchangeService.gI().getItem(-124, KEY_RITUAL);
+                ExchangeItem item = ExchangeService.gI().getItem(-132, KEY_RITUAL);
                 if (item == null) {
                     s.p.sendNoticeBox("Ritual belum bisa dilakukan sekarang. Hubungi Admin!");
                     return;
                 }
-                ExchangeService.gI().exchange(s.p, item);
+                if (event.isHadiahDikunci()) {
+                    s.p.sendNoticeBox("Api Ritual hancur malam ini...\nRitual tidak bisa dilakukan. Coba lagi besok.");
+                    return;
+                }
+
+                int jumlah = ExchangeService.gI().getMaxExchangeCount(s.p, item.getRequirements());
+                if (ExchangeService.gI().exchange(s.p, item) && jumlah > 0) {
+                    EventTop.add(EventTop.HALLOWEEN_RITUAL, s.p.name, jumlah);
+                }
             }
+
+            // ── Menu 2: Top Penukaran ────────────────────────────────────────
+            case 2 -> s.p.sendNoticeBox(EventTop.buildText(EventTop.HALLOWEEN_RITUAL,
+                    "TOP PENUKARAN RITUAL", "x", s.p.name));
 
             // ── Menu default: Info bahan ──────────────────────────────────────
             default -> {
@@ -67,10 +64,10 @@ public class NpcDukun {
                             .append(" ").append(it.getQuantity()).append(" pcs\n");
                     }
                 } else {
-                    info.append("(Bahan ritual belum diatur Admin.)\n");
+                    info.append("Jelangkung 100 Pcs\n Ayam Cemani 100 Pcs\n Tali Pocong 100 Pcs \n");
                 }
 
-                info.append("\nSetiap ritual berhasil, kamu akan mendapat Jimat Malam Suro.");
+                info.append("\nSetiap ritual berhasil, kamu akan mendapat Box Malam Suro.");
                 s.p.sendNoticeBox(info.toString());
             }
         }

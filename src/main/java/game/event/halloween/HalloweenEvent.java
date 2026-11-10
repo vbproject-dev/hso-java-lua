@@ -9,26 +9,13 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Kerangka event Halloween. Belum ada logic apa pun di dalamnya —
- * isi onStart()/onEnd()/onUpdate() sesuai kebutuhan (buka toko, spawn NPC,
- * ubah drop rate, dll). Jadwal default: aktif tiap hari, 25 Okt - 1 Nov.
- */
 public class HalloweenEvent extends GameEvent {
 
-
-    // Periode musim Halloween "Malam Suro". SATU-SATUNYA sumber tanggal event
-    // ini — dipakai langsung oleh shouldBeRemoved() di bawah. Ganti di sini
-    // kalau mau ubah tanggal event, jangan hardcode angka lain di tempat lain.
-    private static final int START_MONTH = 9;
+    private static final int START_MONTH = 10;
     private static final int START_DAY   = 25;
     private static final int END_MONTH   = 11;
-    private static final int END_DAY     = 1;
+    private static final int END_DAY     = 25;
     // ── Flag Gerbang Arwah ───────────────────────────────────────────────────
-    // Sama pola seperti kristalHancur/wavePernahDimenangkan di KemerdekaanEvent.
-    // Belum dipakai NPC manapun buat kunci/buka hadiah (belum ada NPC "Pak
-    // Lurah versi Halloween") — disiapkan duluan supaya GerbangArwah bisa
-    // langsung jalan tanpa NullPointer, tinggal dikaitkan ke NPC reward nanti.
     private boolean kristalHancur = false;
     private boolean wavePernahDimenangkan = false;
 
@@ -98,6 +85,12 @@ public class HalloweenEvent extends GameEvent {
         broadcast(
             "[Malam Suro] Api Ritual SELAMAT! Para pemberani berhasil mengusir gerombolan arwah."
         );
+    }
+
+    /** Dipanggil GerbangArwah.onStart(): status hadiah dihitung ulang tiap malam. */
+    public void resetHarian() {
+        this.kristalHancur = false;
+        this.wavePernahDimenangkan = false;
     }
 
     /** Apakah klaim hadiah gerbang arwah saat ini dikunci? (disiapkan buat NPC reward nanti) */

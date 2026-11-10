@@ -88,6 +88,8 @@ public class GameMap {
     public final CopyOnWriteArrayList<MobInMap> Boss_entrys = new CopyOnWriteArrayList<>();
     public final CopyOnWriteArrayList<MobAi> Ai_entrys;
     public UseItemArena Arena;
+    private long timeNextNpcChat = 0;
+    private static final long NPC_CHAT_INTERVAL = 15_000; // 15 detik, ubah sesuai selera
 
     public MapData mapData;
 
@@ -170,6 +172,14 @@ public class GameMap {
         }
 
     }
+
+    private void auto_chat_npc() {
+        try {
+            NpcChat.autoChat(this);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     public void onUpdate() {
         try {
 
@@ -177,6 +187,11 @@ public class GameMap {
             update_AI();
             if (GameMap.isSummonMap(this, true)) {
                 updateClone();
+            }
+            long now = System.currentTimeMillis();
+            if (now >= timeNextNpcChat) {
+                timeNextNpcChat = now + NPC_CHAT_INTERVAL;
+                auto_chat_npc();
             }
             if (Battlefield.gI().getStatus() == 2 && GameMap.isBattlefieldMap(this.mapId)) {
 
@@ -205,6 +220,11 @@ public class GameMap {
         mob.time_back = System.currentTimeMillis() + mob.timeBossRecive;
         synchronized (Boss_entrys) {
             Boss_entrys.remove(mob);
+        }
+        // Simpan status mati ke DB (hanya World Boss / Premium Boss yang punya persistKey)
+        // supaya restart server tidak menghidupkan boss ini lagi di jendela event yang sama.
+        if (mob.persistKey != null) {
+            BossHDL.BossStateStore.recordKill(mob);
         }
     }
 
@@ -679,15 +699,15 @@ public class GameMap {
                                 case 5468: { // 5468 medal evo Penyihir
                                     byte eff_ = 3;
                                     if (it.tier == 15) {
-                                        eff_ = 72;
+                                        eff_ = 71;
                                     } else if (it.tier >= 12) {
-                                        eff_ = 72;
+                                        eff_ = 71;
                                     } else if (it.tier >= 9) {
-                                        eff_ = 72;
+                                        eff_ = 71;
                                     } else if (it.tier >= 6) {
-                                        eff_ = 72;
+                                        eff_ = 71;
                                     } else if (it.tier >= 3) {
-                                        eff_ = 72;
+                                        eff_ = 71;
                                     }
                                     m.writer().writeByte(eff_);
                                     break;
@@ -1302,12 +1322,31 @@ public class GameMap {
         Message m = new Message(-50);
         List<Point> points = mapData.getNpc();
         try {
+            // FIX: sebelumnya jumlah NPC (points.size()) ditulis SEBELUM filter, jadi saat NPC
+            // event disembunyikan (continue) jumlah di header != jumlah NPC yang benar-benar
+            // dikirim -> client salah baca packet (NPC lain hilang/rusak, "kadang tidak muncul").
+            // Juga NPE kalau id NPC tidak ada di tabel `npc`, yang membatalkan SELURUH packet.
+            List<Point> visible = new ArrayList<>();
+            List<NpcData> visibleData = new ArrayList<>();
+            if (points != null) {
+                for (Point point : points) {
+                    NpcData npcData = MapManager.getInstance().getNpcData(point.getId());
+                    if (npcData == null) {
+                        log.warn("sendNpcData: NPC id {} di map {} tidak ada di tabel npc, dilewati",
+                                point.getId(), this.mapId);
+                        continue;
+                    }
+                    if (!GameEventManager.gI().isEventNpcVisible(npcData.getId()))
+                        continue;
+                    visible.add(point);
+                    visibleData.add(npcData);
+                }
+            }
 
-            m.writer().writeByte(points.size());
-            for (Point point : points) {
-                NpcData npcData = MapManager.getInstance().getNpcData(point.getId());
-                if (!GameEventManager.gI().isEventNpcVisible(npcData.getId()))
-                    continue;
+            m.writer().writeByte(visible.size());
+            for (int i = 0; i < visible.size(); i++) {
+                Point point = visible.get(i);
+                NpcData npcData = visibleData.get(i);
 
                 // Write NPC data
                 m.writer().writeUTF(npcData.getName());

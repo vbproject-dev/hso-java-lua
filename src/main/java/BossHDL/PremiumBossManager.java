@@ -74,9 +74,27 @@ public class PremiumBossManager extends GameEvent {
         System.out.println("[PremiumBoss] Event dimulai — " + entrys.size() + " boss premium dimuat.");
         broadcast("⚔ [PREMIUM BOSS] Event boss premium telah dimulai! Serang sekarang hingga pukul 22:00!");
 
+        // Status mati dari DB: boss yang sudah dikalahkan di jendela event yang SAMA
+        // (sebelum server restart) tidak di-spawn lagi. Event manual GM = selalu fresh.
+        final String windowKey = currentWindowKey();
+        final java.util.Map<String, BossStateStore.State> states =
+                isManualOverride() ? java.util.Map.of() : BossStateStore.loadAll();
+
         // Spawn semua boss langsung saat event mulai (1x per event window)
         for (MobInMap mob : entrys) {
             try {
+                mob.persistKey = BossStateStore.key("PB", mob);
+                mob.persistWindow = windowKey;
+                BossStateStore.State st = states.get(mob.persistKey);
+                if (st != null && windowKey.equals(st.windowKey())) {
+                    mob.isdie = true;
+                    mob.is_boss_active = false;
+                    mob.time_back = st.respawnAt();
+                    System.out.println("[PremiumBoss] " + mob.template.name
+                            + " sudah dikalahkan sebelum restart — tidak di-spawn lagi.");
+                    continue;
+                }
+
                 GameMap[] maps = GameMap.getMapById(mob.map_id);
                 if (maps == null || maps.length <= mob.zone_id) continue;
                 GameMap gm = maps[mob.zone_id];

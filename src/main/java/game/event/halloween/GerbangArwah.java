@@ -17,6 +17,8 @@ import template.MobTemplate;
 
 import java.io.IOException;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.LocalTime;
 import core.Util;
 import java.util.ArrayList;
@@ -29,15 +31,10 @@ import lombok.extern.slf4j.Slf4j;
 public class GerbangArwah extends GameEvent {
 
     // ── Konstanta map ─────────────────────────────────────────────────────────
-    // GANTI ke id map kosong yang tersedia di server kamu — 118 di sini
-    // CUMA PLACEHOLDER, harus beda dari MAP_ID Persimpangan Kematian (117)
-    // supaya 2 event ini tidak bentrok kalau kebetulan berjalan bersamaan.
-    // Jangan lupa juga daftarkan map ini di GameMap.is_map__load_board_player()
-    // (sama seperti map 117), atau kristal & lilin tidak akan terlihat client.
-    public static final byte  MAP_ID        = 120;
+    public static final byte  MAP_ID        = 117;
     public static final byte  ZONE_ID       = 0;
-    private static final short PLAYER_SPAWN_X = (short)(10 * 24);
-    private static final short PLAYER_SPAWN_Y = (short)(10 * 24);
+    private static final short PLAYER_SPAWN_X = (short)(20 * 24);
+    private static final short PLAYER_SPAWN_Y = (short)(20 * 24);
     private static final int   VILLAGE_MAP   = 1;
     private static final short VILLAGE_X     = 320;
     private static final short VILLAGE_Y     = 320;
@@ -51,6 +48,13 @@ public class GerbangArwah extends GameEvent {
     private int timer               = 0;
     private int currentWaveIndex    = 0;
 
+    /** Hasil akhir event malam ini (null = belum selesai / belum pernah jalan). */
+    public enum Hasil { MENANG, KALAH, WAKTU_HABIS }
+    private Hasil     hasilTerakhir  = null;
+    private LocalDate tanggalSelesai = null;
+    private LocalTime waktuSelesai   = null;
+    private static final DateTimeFormatter JAM_FMT = DateTimeFormatter.ofPattern("HH:mm");
+
     private final CopyOnWriteArrayList<MobInMap> activeMobs = new CopyOnWriteArrayList<>();
     private KristalArwahEvent kristal;
     private long lastKristalDrainTime = 0; // timer drain HP kristal selama boss hidup (tiap 1 detik)
@@ -58,8 +62,6 @@ public class GerbangArwah extends GameEvent {
     private final java.util.Set<Player> lilinVisualSent = new java.util.concurrent.CopyOnWriteArraySet<>();
 
     // ── Konstanta pergerakan mob (logic sama seperti Dungeon.java / "Batu
-    // Meteor" dungeon: mob berjalan bertahap tiap tick menuju target, lalu
-    // begitu sudah cukup dekat berhenti & mulai menyerang) ─────────────────────
     private static final int MOB_MOVE_SPEED    = 32;   // px yang ditempuh tiap tick pergerakan (≈1.3 tile)
     private static final long MOB_MOVE_TICK_MS = 400;  // interval pergerakan (lebih sering = lebih halus)
     private static final int MOB_ATTACK_RANGE  = 48;   // px, jarak dari kristal supaya mob dianggap "sampai" & mulai nyerang (2 tile)
@@ -74,61 +76,14 @@ public class GerbangArwah extends GameEvent {
     private long    pendingBossWipeAt = 0; // 0 = tidak ada wipe terjadwal; selain itu = timestamp eksekusi
 
     // ── HP Kristal per wave ────────────────────────────────────────────────────
-    // Semua wave sekarang world boss saja (2 boss/wave, bukan lagi puluhan mob
-    // biasa), dan kristal TIDAK lagi diserang lewat MainObject.attack() mob
-    // biasa tiap 3 detik — selama minimal 1 boss masih hidup, HP kristal
-    // otomatis berkurang KRISTAL_DRAIN_PER_TICK tiap detik (lihat
-    // drainKristalWhileBossAlive()). Nilai di bawah diturunkan drastis dari
-    // versi lama (120jt) supaya seimbang dengan drain rate baru yang jauh
-    // lebih lambat. Sesuaikan lagi sesuai lama rata-rata 1 wave boss bertahan.
-    private static final int KRISTAL_HP = 2_000_000;
+    private static final int KRISTAL_HP = 20_000_000;
 
-    // Damage flat ke kristal tiap detik, SELAMA minimal 1 world boss masih
-    // hidup di wave berjalan (tidak peduli jumlah/posisi boss).
-    private static final int KRISTAL_DRAIN_PER_TICK = 1000;
-    private static final long KRISTAL_DRAIN_INTERVAL_MS = 1000;
+    private static final int KRISTAL_DRAIN_PER_TICK = 10_000;
+    private static final long KRISTAL_DRAIN_INTERVAL_MS = 2000; // drain HP kristal tiap 2 detik selama boss hidup
 
     // ── Konfigurasi wave ──────────────────────────────────────────────────────
-    /**
-     * Kode event dipakai sebagai key untuk baca konfigurasi wave dari tabel
-     * `event_wave_config` (lihat WaveConfig.loadFromDB()). SENGAJA disamakan
-     * dengan nama event yang dikirim ke constructor GameEvent di bawah,
-     * supaya 1 baris di tabel event_wave_config jelas milik event yang mana.
-     */
     private static final String EVENT_KEY = "GERBANG_ARWAH";
 
-    /**
-     * WaveConfig(waveNumber, mobTemplateId, mobCount, mobHp, mobDamage, mobDef, spawnX, spawnY, isBossWave)
-     *
-     * Ini HANYA fallback bawaan kode — dipakai kalau tabel `event_wave_config`
-     * belum diisi/gagal diakses saat event mulai (lihat loadWaves()). Cara
-     * normal mengatur wave sekarang lewat DB, BUKAN edit konstanta ini:
-     * GM bisa isi baris di `event_wave_config` (mob biasa ATAUPUN boss,
-     * boleh dicampur per wave lewat kolom is_boss_wave), lalu reload lewat
-     * menu GM "Reload Wave Event" (adminReloadWaves()) tanpa restart server.
-     *
-     * Isi default di bawah masih mengikuti setup lama: semua wave world boss
-     * (2 boss/wave). spawnX/Y TIDAK DIPAKAI untuk penempatan boss — boss
-     * selalu spawn dekat kristal (lihat BOSS_SPAWN_X/Y di bawah), jadi
-     * nilainya cuma placeholder/kompatibilitas. Untuk mob biasa (is_boss_wave
-     * = 0 di DB), spawnX/Y JUGA tidak dipakai — mob biasa spawn dari
-     * SPAWN_POINTS gerbang (lihat startWave()).
-     *
-     * mobTemplateId diambil dari monster_template yang typeMove=10 (AI world
-     * boss) untuk wave boss, SENGAJA beda dari ID yang dipakai di tabel
-     * boss_premium (233 Rock Joe, 235 Dagnu, 236 Dagon, 238 Blink) supaya
-     * boss event ini tidak numpuk/duplikat sama world boss premium map
-     * 111-114:
-     *   Wave 1 = 221 Malaikat Maut
-     *   Wave 2 = 223 Kunti Mantan
-     *   Wave 3 = 226 Goblin Etanol
-     *   Wave 4 = 229 Kecoa
-     *   Wave 5 (final) = 234 Dagan
-     * mobHp/mobDamage/mobDef di bawah TETAP dipakai (override HP/damage/def
-     * bawaan template saat spawn — lihat startWave() & MainObject.setBaseDefense()),
-     * jadi angka hp/dame/def asli di monster_template untuk ID-ID ini tidak
-     * berpengaruh ke event ini (berlaku sama untuk baris yang datang dari DB).
-     */
     private static final List<WaveConfig> DEFAULT_WAVES = List.of(
         new WaveConfig(1, (short)221, 2,  3_000_000,  30_000,  5_000, (short)(25*24), (short)(15*24), true),
         new WaveConfig(2, (short)223, 2,  5_000_000,  50_000,  8_000, (short)(25*24), (short)(15*24), true),
@@ -137,23 +92,8 @@ public class GerbangArwah extends GameEvent {
         new WaveConfig(5, (short)234, 2, 20_000_000, 200_000, 25_000, (short)(25*24), (short)(15*24), true)
     );
 
-    /**
-     * Daftar wave yang benar-benar dipakai saat ini. Diisi dari DB (lihat
-     * loadWaves()) tiap kali event mulai (onStart()) supaya perubahan yang
-     * GM lakukan di tabel event_wave_config sebelum event jalan otomatis
-     * kepakai — tidak perlu restart server. Fallback ke DEFAULT_WAVES kalau
-     * DB kosong/gagal.
-     */
     private List<WaveConfig> WAVES = DEFAULT_WAVES;
 
-    // ── Titik spawn gerbang persimpangan ─────────────────────────────────────
-    // Diambil dari 3 tanda merah di map (Utara/Barat/Timur menuju persimpangan).
-    // {x, y, orientation}: orientation menentukan arah formasi mob mengular
-    // supaya sejajar jalan (bukan malah nembus pohon di pinggir jalan):
-    //   0 = jalur vertikal (Utara)  -> lebar formasi di X, memanjang ke atas (Y berkurang)
-    //   1 = jalur horizontal (Barat)-> lebar formasi di Y, memanjang ke kiri  (X berkurang)
-    //   2 = jalur horizontal (Timur)-> lebar formasi di Y, memanjang ke kanan (X bertambah)
-    // GANTI koordinat ini kalau posisi jalan di map kamu beda.
     private static final short[][] SPAWN_POINTS = {
         {(short) (19 * 24), (short) (3 * 24), 0},   // Utara
         {(short) (2 * 24),  (short) (20 * 24), 1},  // Barat
@@ -161,30 +101,21 @@ public class GerbangArwah extends GameEvent {
     };
     private static final int SPAWN_FORMATION_WIDTH = 5; // lebar formasi (tile) tegak lurus jalan
 
-    // ── Titik spawn khusus BOSS ──────────────────────────────────────────────
-    // Boss TIDAK spawn dari gerbang jauh seperti mob biasa — langsung muncul
-    // dekat kristal (5 tile di utara kristal) supaya begitu wave boss mulai,
-    // dia cuma butuh beberapa langkah buat "sampai" dan momen-nya lebih
-    // dramatis/langsung, bukan jalan jauh dari luar map.
     private static final short BOSS_SPAWN_X = KristalArwahEvent.KRISTAL_X;
     private static final short BOSS_SPAWN_Y = (short) (KristalArwahEvent.KRISTAL_Y - 5 * 24);
-    // Jarak antar boss (px) supaya 2 boss dalam 1 wave tidak spawn dobel di titik sama.
     private static final short BOSS_SPAWN_SPREAD = 2 * 24;
-    // SET HADIAH KILL MOB WAVE — reuse currency Jimat Malam Suro yang sama
-    // dipakai MalamSuroAmbush/NpcDukun/NpcPocong (MalamSuroAmbush.JIMAT_ID),
-    // biar semua sub-mekanik Halloween pakai 1 currency yang sama, bukan
-    // bikin currency baru lagi per mekanik.
+
     private static final int   KOIN_DROP_MIN        = 2;   // jimat per mob biasa
     private static final int   KOIN_DROP_MAX        = 5;
     private static final int   KOIN_DROP_MIN_BOSS    = 15;  // jimat per mob boss wave
-    private static final int   KOIN_DROP_MAX_BOSS    = 25;
+    private static final int   KOIN_DROP_MAX_BOSS    = 20;
 
     // ── Constructor ───────────────────────────────────────────────────────────
     public GerbangArwah() {
         super(
             "GERBANG_ARWAH",
             EnumSet.allOf(DayOfWeek.class),
-            List.of(new TimeEvent(LocalTime.of(12,35), LocalTime.of(15, 0)))
+            List.of(new TimeEvent(LocalTime.of(20,0), LocalTime.of(21, 0)))
         );
     }
 
@@ -197,15 +128,17 @@ public class GerbangArwah extends GameEvent {
 
     @Override
     protected void onStart() {
-        // Cek apakah event Halloween sedang aktif — KECUALI kalau GM yang
-        // memaksa start manual (lewat adminForceStart()/forceStart()), maka
-        // syarat periode 25 Okt-1 Nov ini diabaikan supaya GM bisa
-        // mengaktifkan Gerbang Arwah kapan saja untuk testing/acara.
         HalloweenEvent halloween = GameEventManager.gI().getEvent(HalloweenEvent.class);
         if (!isManualOverride() && (halloween == null || halloween.shouldBeRemoved())) {
             // Gerbang Arwah hanya jalan otomatis selama event Halloween aktif
             return;
         }
+
+        // Event baru dimulai -> hasil & status hadiah kemarin dibersihkan
+        hasilTerakhir  = null;
+        tanggalSelesai = null;
+        waktuSelesai   = null;
+        if (halloween != null) halloween.resetHarian();
 
         loadWaves();
 
@@ -220,29 +153,12 @@ public class GerbangArwah extends GameEvent {
         if (maps != null && maps.length > ZONE_ID) {
             GameMap map = maps[ZONE_ID];
             kristal = new KristalArwahEvent(this, map, KRISTAL_HP);
-            // FIX: JANGAN daftarkan ke Boss_entrys — kalau didaftarkan, engine
-            // otomatis menganggap kristal sebagai monster biasa (lewat
-            // MapService.update_inside_player()) dan ikut mengirim nameplate+HP
-            // bar bawaannya sendiri ("Mining Crystal Lv80"), NUMPUK persis di
-            // koordinat yang sama dengan visual lilin manual di bawah
-            // ("Lilin Malam Suro") -> muncul dobel di client.
-            // Serangan mob ke kristal (MainObject.attack()) tidak butuh
-            // keanggotaan Boss_entrys sama sekali (pakai referensi objek
-            // langsung), dan visibility/nama/HP kristal sudah sepenuhnya
-            // ditangani manual lewat sendLilinVisual()/sendLilinInfo() di
-            // bawah, jadi registrasi ke Boss_entrys memang tidak diperlukan.
-
-            // Spawn visual "lilin ritual" (dekoratif) ke semua player
-            // yang sudah ada di map saat event mulai.
             lilinVisualSent.clear();
             for (Player p : map.players) {
                 try {
                     kristal.sendLilinFall(p); // spawn + animasi jatuh dari atas
                     lilinVisualSent.add(p);
                 } catch (IOException ignore) {}
-                // Nyalakan efek cuaca ambient untuk player yang sudah ada di map
-                // saat event mulai (player yang masuk belakangan otomatis dapat
-                // lewat MessageHandler case 12 saat mereka pindah zona ke map ini).
                 sendWeather(p, (byte) 4);
             }
         }
@@ -259,6 +175,7 @@ public class GerbangArwah extends GameEvent {
         if (state == PersimpanganState.WAVE || state == PersimpanganState.REST
                 || state == PersimpanganState.COUNTDOWN) {
             // Event selesai sebelum waktunya (misal server jam sudah lewat)
+            catatHasil(Hasil.WAKTU_HABIS);
             broadcast("[Malam Suro] Waktu habis, event dihentikan.");
             clearMobsFromMap();
             teleportAllToVillage();
@@ -317,21 +234,8 @@ public class GerbangArwah extends GameEvent {
                     }
                 }
 
-                // ── Pergerakan mob menuju kristal (logic sama seperti Dungeon.java:
-                // mob_act()/update_mob() di "dungeon Batu Meteor" — mob jalan
-                // bertahap tiap tick ke arah target, berhenti begitu cukup dekat) ──
                 moveMobsTowardKristal();
-
-                // ── Skill area boss saat HP kritis (20% & 10%) — dramatis: kasih
-                // peringatan dulu beberapa detik, lalu bunuh semua player di map. ──
                 checkBossEnrageSkill();
-
-                // ── Drain HP kristal selama world boss masih hidup ──────────
-                // Semua mob sekarang world boss — tidak ada lagi mob biasa yang
-                // "jalan mendekat lalu menyerang kristal" lewat MainObject.attack().
-                // Selama minimal 1 boss di wave ini masih hidup (tidak peduli
-                // posisi/jaraknya ke kristal), HP kristal otomatis berkurang
-                // KRISTAL_DRAIN_PER_TICK tiap KRISTAL_DRAIN_INTERVAL_MS.
                 drainKristalWhileBossAlive();
             }
 
@@ -345,28 +249,11 @@ public class GerbangArwah extends GameEvent {
     }
 
     // ── Konfigurasi wave dari DB ──────────────────────────────────────────────
-
-    /**
-     * Baca ulang daftar wave (mob biasa & boss) dari tabel `event_wave_config`
-     * untuk EVENT_KEY ini. Kalau tabel kosong atau gagal diakses, tetap pakai
-     * DEFAULT_WAVES supaya event tidak pernah gagal start gara-gara DB belum
-     * di-setup / lagi bermasalah.
-     */
     private void loadWaves() {
         List<WaveConfig> fromDb = WaveConfig.loadFromDB(EVENT_KEY);
         WAVES = fromDb.isEmpty() ? DEFAULT_WAVES : fromDb;
     }
 
-    /**
-     * Dipanggil GM lewat menu "Reload Wave Event" supaya perubahan yang baru
-     * diisi/diedit di tabel event_wave_config langsung kepakai tanpa perlu
-     * restart server. Aman dipanggil kapan saja — kalau event sedang
-     * berjalan (WAVE/REST/COUNTDOWN), wave yang SEDANG berlangsung tidak
-     * diubah di tengah jalan; perubahan baru berlaku mulai wave berikutnya
-     * atau saat event di-start ulang.
-     *
-     * @return pesan status untuk ditampilkan ke GM.
-     */
     public String adminReloadWaves() {
         List<WaveConfig> fromDb = WaveConfig.loadFromDB(EVENT_KEY);
         if (fromDb.isEmpty()) {
@@ -387,8 +274,6 @@ public class GerbangArwah extends GameEvent {
         state = PersimpanganState.WAVE;
         activeMobs.clear();
 
-        // Reset status skill area boss (20%/10% HP) tiap kali wave boss dimulai
-        // ulang, supaya tidak ke-skip kalau event direset/di-restart.
         if (cfg.isBossWave) {
             bossSkill20Used  = false;
             bossSkill10Used  = false;
@@ -399,16 +284,8 @@ public class GerbangArwah extends GameEvent {
         if (maps == null || maps.length <= ZONE_ID) return;
         GameMap map = maps[ZONE_ID];
 
-        // Lookup template sekali saja di luar loop (dipanggil 100-150x per
-        // wave sekarang, lookup di dalam loop cuma buang-buang waktu karena
-        // hasilnya sama terus untuk 1 wave).
         MobTemplate tpl = MobTemplate.getMob(cfg.mobTemplateId);
         if (tpl == null) {
-            // FIX: dulu di sini cuma `return` diam-diam kalau mob_template_id
-            // di wave config tidak ketemu di tabel `monster_template` — wave
-            // jadi gagal total tanpa mob yang muncul SAMA SEKALI, dan tidak
-            // ada log/error apapun buat GM debug kenapa. Sekarang dikasih log
-            // + notice ke map biar ketauan.
             log.error("[GerbangArwah] Wave {} gagal start: mob_template_id={} "
                     + "tidak ditemukan di tabel `monster_template`. Cek data mob-nya.",
                     cfg.waveNumber, cfg.mobTemplateId);
@@ -418,10 +295,6 @@ public class GerbangArwah extends GameEvent {
             return;
         }
 
-        // Mob dibagi rata bergiliran (round-robin) ke 3 titik gerbang
-        // (Utara/Barat/Timur) supaya nyerbu dari 3 arah sekaligus, bukan
-        // numpuk di 1 titik. pointLocalIdx melacak indeks lokal tiap titik
-        // biar formasinya rapi per titik (bukan ikut index global i).
         int numPoints = SPAWN_POINTS.length;
         int[] pointLocalIdx = new int[numPoints];
 
@@ -429,9 +302,7 @@ public class GerbangArwah extends GameEvent {
             short mobX, mobY;
 
             if (cfg.isBossWave) {
-                // Boss langsung spawn dekat kristal, bukan dari gerbang jauh.
-                // Digeser sedikit tiap boss (kelipatan BOSS_SPAWN_SPREAD) supaya
-                // 2 boss dalam 1 wave tidak numpuk persis di koordinat yang sama.
+
                 mobX = (short) (BOSS_SPAWN_X + i * BOSS_SPAWN_SPREAD);
                 mobY = BOSS_SPAWN_Y;
             } else {
@@ -468,12 +339,6 @@ public class GerbangArwah extends GameEvent {
             mob.setBoss(cfg.isBossWave);
             mob.is_boss_active = true;
             mob.isdie          = false;
-            // Pembagian peran: mob biasa FOKUS nyerang kristal (isATK=false ->
-            // tidak nyerang player lewat AI bawaan MobInMap.update(), tapi tetap
-            // kena serang kristal lewat panggilan manual di WAVE case onUpdate()).
-            // Boss FOKUS nyerang player (isATK=true -> aktif lewat AI bawaan),
-            // dan dikecualikan dari serangan ke kristal (lihat pengecekan
-            // mob.isBoss() di loop serangan kristal pada onUpdate()).
             mob.isATK          = cfg.isBossWave;
 
             map.Boss_entrys.add(mob);
@@ -501,20 +366,16 @@ public class GerbangArwah extends GameEvent {
     }
 
     // ── Akhir event ───────────────────────────────────────────────────────────
-
-    /**
-     * Dipanggil dari KristalArwahEvent.setDie() saat HP kristal mencapai 0
-     * (dipicu otomatis oleh MainObject.attack() ketika mob menyerang kristal).
-     * Mengunci hadiah Gerbang Arwah untuk SEMUA player (lewat HalloweenEvent.onKristalHancur()).
-     */
     public void onKristalHancur() throws IOException {
         if (state == PersimpanganState.DEFEAT) return;
         state = PersimpanganState.DEFEAT;
         clearMobsFromMap();
+        catatHasil(Hasil.KALAH);
 
         // Kunci hadiah di event halloween
         HalloweenEvent halloween = GameEventManager.gI().getEvent(HalloweenEvent.class);
         if (halloween != null) halloween.onKristalHancur();
+        umumkanSelesai(Hasil.KALAH, 5);
 
         // Teleport semua player keluar setelah 5 detik
         new Thread(() -> {
@@ -527,9 +388,11 @@ public class GerbangArwah extends GameEvent {
     private void triggerVictory(HalloweenEvent halloween) {
         state = PersimpanganState.VICTORY;
         clearMobsFromMap();
+        catatHasil(Hasil.MENANG);
 
         // Buka hadiah Gerbang Arwah untuk semua player
         if (halloween != null) halloween.onKristalSelamat();
+        umumkanSelesai(Hasil.MENANG, 10);
 
         // Teleport semua player pulang setelah 10 detik
         new Thread(() -> {
@@ -539,12 +402,84 @@ public class GerbangArwah extends GameEvent {
         }).start();
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────
+    // ── Status & pengumuman hasil event ───────────────────────────────────────
+
+    private void catatHasil(Hasil hasil) {
+        hasilTerakhir  = hasil;
+        tanggalSelesai = LocalDate.now();
+        waktuSelesai   = LocalTime.now();
+    }
+
+    /** Jam selesai jadwal otomatis (mis. 21:00), atau null kalau tidak ada. */
+    private LocalTime jadwalSelesai() {
+        List<TimeEvent> te = getTimeEvents();
+        return (te == null || te.isEmpty()) ? null : te.get(0).end();
+    }
+
+    private LocalTime jadwalMulai() {
+        List<TimeEvent> te = getTimeEvents();
+        return (te == null || te.isEmpty()) ? null : te.get(0).start();
+    }
+
+    /** Teks jadwal, mis. "20:00 - 21:00" (selalu sinkron dengan konstruktor). */
+    public String getJadwalText() {
+        LocalTime a = jadwalMulai(), b = jadwalSelesai();
+        return (a == null || b == null) ? "-" : a.format(JAM_FMT) + " - " + b.format(JAM_FMT);
+    }
 
     /**
-     * Teleport semua player yang ada di MAP_ID ke desa.
-     * Tidak perlu daftar — siapapun yang ada di map ikut dipulangkan.
+     * Umumkan hasil ke SELURUH server (supaya player yang masih di desa tahu
+     * event sudah selesai & tidak perlu masuk lagi) dan ke player di arena.
      */
+    private void umumkanSelesai(Hasil hasil, int detikPulang) {
+        String hasilTxt = (hasil == Hasil.MENANG)
+                ? "Api Ritual SELAMAT, para pemberani menang!"
+                : "Api Ritual HANCUR.";
+
+        LocalTime akhir = jadwalSelesai();
+        boolean lebihCepat = !isManualOverride() && akhir != null && LocalTime.now().isBefore(akhir);
+
+        StringBuilder sb = new StringBuilder("[Gerbang Arwah] ");
+        sb.append(lebihCepat ? "Event malam ini SELESAI LEBIH CEPAT dari jadwal. "
+                             : "Event malam ini SELESAI. ");
+        sb.append(hasilTxt);
+        if (!isManualOverride() && jadwalMulai() != null) {
+            sb.append(" Gerbang Arwah dibuka lagi besok pukul ")
+              .append(jadwalMulai().format(JAM_FMT)).append(" WIB.");
+        }
+        broadcast(sb.toString());
+
+        broadcastToMap("[Malam Suro] Event selesai! " + hasilTxt
+                + " Kamu akan dipulangkan ke desa dalam " + detikPulang + " detik.");
+    }
+
+    /** TRUE kalau player boleh masuk arena sekarang (event benar-benar sedang berjalan). */
+    public boolean canEnter() {
+        return isActive() && (state == PersimpanganState.COUNTDOWN
+                || state == PersimpanganState.WAVE
+                || state == PersimpanganState.REST);
+    }
+
+    /**
+     * Ringkasan hasil event HARI INI untuk ditampilkan di NPC, atau null kalau
+     * belum ada hasil hari ini. Contoh: "Api Ritual SELAMAT (selesai 20:42)".
+     */
+    public String getRingkasanHasil() {
+        if (hasilTerakhir == null || !LocalDate.now().equals(tanggalSelesai)) return null;
+        String jam = (waktuSelesai != null) ? " (selesai " + waktuSelesai.format(JAM_FMT) + ")" : "";
+        return switch (hasilTerakhir) {
+            case MENANG      -> "Api Ritual SELAMAT" + jam;
+            case KALAH       -> "Api Ritual HANCUR" + jam;
+            case WAKTU_HABIS -> "Waktu habis, event dihentikan" + jam;
+        };
+    }
+
+    /** Teks "dibuka lagi" untuk NPC, mis. "besok pukul 20:00 WIB". */
+    public String getJadwalBerikutnyaText() {
+        return jadwalMulai() == null ? "sesuai jadwal" : "besok pukul " + jadwalMulai().format(JAM_FMT) + " WIB";
+    }
+
+    // ── Helper ────────────────────────────────────────────────────────────────
     private void teleportAllToVillage() {
         GameMap[] maps = GameMap.getMapById(MAP_ID);
         if (maps == null || maps.length <= ZONE_ID) return;
@@ -587,14 +522,6 @@ public class GerbangArwah extends GameEvent {
     }
 
     // ── Pergerakan mob menuju kristal ────────────────────────────────────────
-    // Logic diadaptasi dari Dungeon.java (mob_act()/update_mob() di dungeon
-    // "Batu Meteor"): tiap tick, mob melangkah MOB_MOVE_SPEED px ke arah
-    // target (kristal), lalu berhenti begitu jaraknya <= MOB_ATTACK_RANGE.
-    // Bedanya dengan Dungeon.java (yang cuma gerak 1 sumbu/gate karena mob
-    // selalu spawn segaris dengan target): mob kita spawn dari 3 arah
-    // berbeda (Utara/Barat/Timur, lihat SPAWN_POINTS) jadi pergerakannya
-    // dihitung 2 sumbu sekaligus (diagonal) memakai vektor arah dx/dy yang
-    // dinormalisasi, supaya tetap lurus menuju kristal dari sudut manapun.
     private void moveMobsTowardKristal() {
         if (kristal == null || kristal.isdie || activeMobs.isEmpty()) return;
 
@@ -603,12 +530,7 @@ public class GerbangArwah extends GameEvent {
         lastMobMoveTime = now;
 
         for (MobInMap mob : activeMobs) {
-            // Boss TETAP jalan mendekat ke kristal (biar sampai di tengah medan
-            // pertempuran, dramatis). Jumlah drain HP kristal per tick (angka)
-            // tidak bergantung posisi/jarak boss (lihat drainKristalWhileBossAlive()),
-            // TAPI animasi serangannya (sendMobAttackKristalEffect()) HANYA
-            // ditampilkan untuk mob yang SUDAH SAMPAI (isMobArrivedAtKristal),
-            // supaya visualnya tetap konsisten dengan posisi mob di map.
+
             if (mob.isdie || isMobArrivedAtKristal(mob)) continue;
 
             double dx = kristal.x - mob.x;
@@ -624,27 +546,6 @@ public class GerbangArwah extends GameEvent {
         }
     }
 
-    /**
-     * Kurangi HP kristal sebesar KRISTAL_DRAIN_PER_TICK tiap
-     * KRISTAL_DRAIN_INTERVAL_MS, SELAMA minimal 1 world boss di wave
-     * berjalan masih hidup (activeMobs semuanya boss sejak semua wave
-     * di-set isBossWave=true). Begitu semua boss di wave itu mati, drain
-     * otomatis berhenti (activeMobs kosong -> wave berikutnya dimulai).
-     * Kalau kristal habis di sini, trigger setDie() secara manual persis
-     * seperti yang biasanya dipicu otomatis oleh MainObject.attack().
-     *
-     * ── Efek visual serangan ────────────────────────────────────────────
-     * Selain drain HP (angka), tiap tick di sini JUGA mengirim animasi
-     * "mob menyerang lilin" (opcode 10) ke semua player — formatnya
-     * di-copy persis dari Dungeon.java mob_act() (dungeon "Batu Meteor"),
-     * lihat sendMobAttackKristalEffect(). Cuma mob yang SUDAH SAMPAI di
-     * kristal (isMobArrivedAtKristal — hasil dari moveMobsTowardKristal())
-     * yang dianimasikan menyerang, supaya visualnya konsisten sama posisi
-     * mob di map (bukan mob yang masih jauh tiba-tiba kelihatan nyerang).
-     * Total damage yang ditampilkan di animasi dibagi rata ke semua mob
-     * yang sedang menyerang, jumlahnya tetap sama dengan dmg aktual di
-     * bawah — animasi ini murni tampilan, tidak menambah damage sungguhan.
-     */
     private void drainKristalWhileBossAlive() {
         if (kristal == null || kristal.isdie || activeMobs.isEmpty()) return;
 
@@ -676,19 +577,6 @@ public class GerbangArwah extends GameEvent {
         }
     }
 
-    /**
-     * Kirim animasi "mob menyerang lilin" ke semua player di map. Format
-     * paket (opcode 10) DI-COPY PERSIS dari Dungeon.java mob_act() (dungeon
-     * "Batu Meteor", lihat blok if(is_atk) di sana):
-     *   byte 1, short objectId mob, int HP mob, byte 2, byte 1,
-     *   short index target (lilin), int damage, int HP target setelah
-     *   kena, byte id skill (6, sama seperti Dungeon.java), byte 0.
-     * Target dikirim sebagai KristalArwahEvent.LILIN_VISUAL_ID (bukan
-     * kristal.objectId asli) karena itulah objek yang benar-benar dirender
-     * client sebagai "Lilin Malam Suro" (lihat sendLilinVisual() di
-     * KristalArwahEvent) — kristal.objectId sendiri sengaja tidak pernah
-     * di-spawn ke client (lihat komentar FIX di onStart()).
-     */
     private void sendMobAttackKristalEffect(MobInMap mob, int dame, int kristalHpAfter) {
         if (kristal == null || kristal.gameMap == null) return;
         try {
@@ -739,10 +627,6 @@ public class GerbangArwah extends GameEvent {
     }
 
     // ── Skill area boss (dramatis) ────────────────────────────────────────────
-    // Saat HP boss menyentuh 20% lalu 10%, boss "murka" dan mengeluarkan skill
-    // area yang membunuh SEMUA player di map (dua fase: peringatan dulu 3 detik,
-    // baru eksekusi — biar terasa dramatis & player sempat panik/bersiap,
-    // bukan instant kill tanpa aba-aba).
     private void checkBossEnrageSkill() {
         if (kristal == null || kristal.gameMap == null) return;
 
@@ -789,34 +673,6 @@ public class GerbangArwah extends GameEvent {
         );
     }
 
-    /**
-     * Eksekusi skill pemusnah — bunuh semua player di map event ini.
-     * Menghormati medali anti-mati (NgocKhaiHoan) sama seperti skill area boss
-     * premium (lihat BossHDL.PremiumBossManager.bossAreaSkill), supaya player
-     * yang pakai medali tetap terlindungi.
-     *
-     * FIX PERFORMA + VISUAL: kill (hp/isdie) tetap SYNCHRONOUS di game tick
-     * thread supaya state langsung konsisten (tidak nunggu network). Tapi
-     * broadcast paket animasi op9 ke SEMUA player dipindah ke background
-     * thread — karena map event ini (120) terdaftar di GameMap.is_map__load_board_player(),
-     * broadcast paket per-target ini SELALU dikirim ke SEMUA player (skip cek
-     * radius), jadi totalnya N x N paket (N = jumlah player di map). Kalau
-     * dieksekusi synchronous di game tick thread, ini nge-block event loop
-     * server sesaat -> lag/freeze (persis gejala harus keluar-masuk map dulu
-     * baru status mati ke-sync). Dipindah ke background thread (pola sama
-     * seperti delayed teleport di onKristalHancur()/triggerVictory() di
-     * bawah) supaya tick server tetap responsif, TAPI paket tetap sampai ke
-     * semua player (termasuk yang nonton dari char lain) — cuma keluar
-     * beberapa milidetik lebih lambat, bukan diam sama sekali kayak fix
-     * sebelumnya.
-     *
-     * PENTING: GameMap.players itu ArrayList biasa (bukan thread-safe), jadi
-     * broadcast di background thread TIDAK BOLEH iterate map.players yang
-     * masih "hidup" langsung (race kalau ada player join/leave barengan).
-     * Makanya diambil snapshot (defensive copy) dulu di sini (main thread)
-     * sebelum masuk background thread.
-     */
-    /** Durasi tampilan efek "gosong" (terbakar) di badan player yang kena Serangan Pemusnah. */
     private static final int BOSS_WIPE_BURN_EFF_MS = 3000;
 
     private void executeBossWipe(MobInMap boss) {
@@ -839,28 +695,6 @@ public class GerbangArwah extends GameEvent {
         }
         if (targets.isEmpty()) return;
 
-        // Kill SEKARANG (synchronous) supaya state game langsung konsisten.
-        // PENTING: p.setDie() SENDIRI TIDAK KIRIM PAKET APA PUN ke client — lihat
-        // MainObject.setDie() (cuma `hp = 0; isdie = true;`, murni flag server-side).
-        // Notifikasi "player mati" yang beneran ditampilkan ke client itu paket
-        // terpisah: MapService.Player_Die() (opcode 41). Pola resminya (lihat
-        // MainObject.attack(), sekitar baris 1017-1035) SELALU pasang setDie()
-        // + Player_Die() berbarengan setiap kali target-nya player. Sebelumnya
-        // executeBossWipe() cuma manggil setDie() tanpa Player_Die() -> state mati
-        // cuma ke-update di server, client gak pernah dikasih tahu -> makanya
-        // status "mati" baru kelihatan setelah keluar-masuk map (paksa resync
-        // penuh). Efek visual "gosong" juga WAJIB di sini (main/tick thread),
-        // BUKAN di background thread di bawah — Eff_special_skill.send_eff_Vip()
-        // memanggil MapService.sendMsgPlayerInside() yang iterate gameMap.players
-        // (ArrayList biasa, bukan snapshot, bukan thread-safe) secara LANGSUNG.
-        // Dipanggil dari background thread bikin race sama main thread (mis. saat
-        // player klik Revive / teleport lain yang mengubah gameMap.players di
-        // waktu bersamaan) -> exception di tengah loop -> ke-swallow diam-diam ->
-        // paket efek gagal terkirim penuh -> client stuck nunggu paket lanjutan
-        // yang gak pernah datang (persis gejala freeze/no-damage sampai keluar-
-        // masuk map). Makanya semua Eff_special_skill.*/MapService.sendMsgPlayerInside
-        // di codebase ini SELALU dipanggil sinkron dari main thread (lihat pola
-        // yang sama di PremiumBossManager.applyAreaSkillEffect()).
         for (Player p : targets) {
             try {
                 p.hp = 0;
@@ -921,10 +755,6 @@ public class GerbangArwah extends GameEvent {
             p.item.add_item_bag47(MalamSuroAmbush.JIMAT_ID, qty, MalamSuroAmbush.ITEM_CAT_MATERIAL);
 
             try {
-                // FIX: add_item_bag47() cuma update data di server, tidak otomatis
-                // mengirim paket refresh inventory ke client. Tanpa charInventory(7)
-                // di sini, item material baru bakal "ada" di data tapi tidak muncul
-                // di UI inventory player sampai dia logout/login ulang.
                 p.item.charInventory(7);
                 Service.Show_open_box_notice_item(
                     p, "Kamu Mendapatkan",
@@ -959,19 +789,6 @@ public class GerbangArwah extends GameEvent {
     /** Dipakai MessageHandler untuk cek apakah efek cuaca map event ini harus nyala. */
     public boolean isRunning() { return state != PersimpanganState.CLOSED; }
 
-    // ── Trigger manual GM ────────────────────────────────────────────────────
-    // Selain jadwal otomatis (setiap hari 21:00-22:00 selama 25 Okt-1 Nov),
-    // GM bisa mengaktifkan event ini kapan saja lewat menu GM (lihat
-    // MenuManager.adminUtilityMenu()), tanpa perlu menunggu jadwal ataupun
-    // periode Halloween. Event yang di-trigger manual otomatis berhenti
-    // sendiri begitu wave terakhir selesai/kristal hancur (lewat cleanup()),
-    // atau bisa dihentikan paksa GM kapan saja lewat adminForceEnd().
-
-    /**
-     * Coba mulai event ini secara manual sekarang juga.
-     *
-     * @return pesan status untuk ditampilkan ke GM.
-     */
     public String adminForceStart() {
         if (isRunning() || isActive()) {
             return "Gerbang Arwah sedang berjalan (wave " + getCurrentWave()

@@ -224,18 +224,12 @@ public class UseItem {
             }
             case 27, 90, 91 -> {
                 int currentLevel = conn.p.level;
-                if (currentLevel > 290) { 
+                if (currentLevel > 296) { 
                     conn.p.sendNoticeBox("Level sudah maksimal, tidak bisa menggunakan item ini.");
                     return;
                 }
                 if (currentLevel - 1 >= 0 && currentLevel - 1 < Level.entrys.size()) {
-                    // FIX: pakai (currentLevel - 1), bukan currentLevel langsung.
-                    // Konvensi di seluruh codebase: kebutuhan exp buat level L ada di
-                    // Level.entrys.get(L - 1) (index 0 = level 1). Sebelumnya kode ini
-                    // ambil entrys.get(currentLevel) tanpa -1, jadi malah ngitung bonus
-                    // exp dari kebutuhan exp SATU LEVEL DI ATAS level pemain sekarang
-                    // -> bonusExp yang dikasih ke player jadi kegedean & makin ngaco
-                    // di level tinggi.
+                    
                     long totalExp = Level.entrys.get(currentLevel - 1).exp;
                     long bonusExp = Math.round(totalExp * 0.01); // 1% of total exp
                     if (id_potion == 90) {
