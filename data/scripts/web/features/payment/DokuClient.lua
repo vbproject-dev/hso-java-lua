@@ -27,7 +27,6 @@ local function clean(text)
     return (tostring(text or ""):gsub("[%c'\"\\]", ""):sub(1, 200))
 end
 
--- Both the status API and the notification use the same shape; this keeps only what we need.
 local function normalize(data)
     local order = type(data.order) == "table" and data.order or {}
     local transaction = type(data.transaction) == "table" and data.transaction or {}
@@ -53,8 +52,6 @@ function DokuClient.configError()
     return nil
 end
 
--- DOKU signature. String to sign, one item per line:
---   Client-Id, Request-Id, Request-Timestamp, Request-Target and (when there is a body) Digest.
 function DokuClient.sign(clientId, secretKey, requestId, timestamp, target, body)
     local lines = {
         "Client-Id:" .. clientId,
@@ -70,8 +67,6 @@ function DokuClient.sign(clientId, secretKey, requestId, timestamp, target, body
     return "HMACSHA256=" .. Crypto.base64Encode(Crypto.hmacSha256(secretKey, table.concat(lines, "\n")))
 end
 
--- Sends one signed request. Returns { status, data, raw } or nil, "error".
--- The call blocks the Lua thread until DOKU answers (the HTTP client gives up after 10 seconds).
 local function request(method, target, bodyTable)
     local requestId = string.format("RQ-%d-%s", os.time(), Crypto.randomHex(6))
     local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
@@ -101,8 +96,6 @@ local function request(method, target, bodyTable)
     return { status = response.status, data = decode(response.body), raw = response.body }
 end
 
--- order: { invoice, name, amount }   customer: { id, name, email }
--- Returns { url, expiresAt } or nil, "error".
 function DokuClient.createCheckout(order, customer)
     local body = {
         order    = {
@@ -135,8 +128,6 @@ function DokuClient.createCheckout(order, customer)
     return { url = payment.url, expiresAt = payment.expired_date }
 end
 
--- Returns { invoice, amount, status, channel } or nil, "error".
--- status is "NOT_FOUND" when DOKU does not know the invoice yet (the player has not opened the link).
 function DokuClient.fetchStatus(invoice)
     local response, err = request("GET", STATUS_PATH .. invoice)
     if not response then
@@ -154,7 +145,6 @@ function DokuClient.fetchStatus(invoice)
     return nil, "DOKU status HTTP " .. tostring(response.status)
 end
 
--- Checks the signature DOKU puts on every notification. Returns true, or false + reason.
 function DokuClient.verify(request)
     local h = lowerHeaders(request.headers)
     local clientId, requestId, timestamp, signature = h["client-id"], h["request-id"], h["request-timestamp"],
@@ -178,7 +168,6 @@ function DokuClient.verify(request)
     return true
 end
 
--- Returns { invoice, amount, status, channel } or nil.
 function DokuClient.parseNotification(body)
     local data = decode(body)
     return data and normalize(data) or nil
