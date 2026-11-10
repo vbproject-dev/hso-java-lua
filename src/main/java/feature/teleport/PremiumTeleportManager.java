@@ -368,24 +368,15 @@ public class PremiumTeleportManager {
         return mapId == GATEWAY_MAP_ID;
     }
 
-    /**
-     * Cek apakah player boleh masuk ke area premium.
-     *
-     * Aturan:
-     * - Map 115 (gateway) = BEBAS, siapapun boleh masuk
-     * - Map 111-114 = butuh sesi aktif (tidak perlu cek asal map)
-     *
-     * Warp antar-map sudah tersedia di SQL sehingga perpindahan
-     * 115→111→112→113→114 (dan balik) mengikuti alur normal game.
-     *
-     * @param p         player yang mencoba masuk
-     * @param toMapId   map tujuan
-     * @return true jika diizinkan masuk
-     */
+
     public boolean canEnterPremiumMap(Player p, int toMapId) {
-        if (!isPremiumMap(toMapId)) return true;      // bukan premium → bebas
-        if (isGatewayMap(toMapId)) return true;       // map 115 → bebas masuk
-        return hasActiveSession(p);                    // map 111-114 → butuh sesi
+        if (!isPremiumMap(toMapId))
+            return true;
+
+        if (isGatewayMap(toMapId))
+            return true;
+
+        return hasActiveSession(p);
     }
 
     // ---------------------------------------------------------------

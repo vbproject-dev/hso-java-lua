@@ -12,6 +12,7 @@
 local NpcRegistry     = require "modules.npc.NpcRegistry"
 local HandlerRegistry = require "modules.handlers.HandlerRegistry"
 local Service         = require("core.JavaClass").Service
+local PvpManager      = require("modules.features.pvp.PvpManager")
 
 
 local MAX_PACKETS_PER_SECOND = 10
@@ -173,7 +174,17 @@ function LuaBridge.onDisconnected(session)
     log("%s DISCONNECTED FROM SERVER", session.p and session.p.name or session.ip)
 end
 
+function LuaBridge.onAttack(player, target, damage)
+    return 0
+end
+
 function LuaBridge.onPlayerDie(player)
+    if player and player.map.mapId == 102 then
+        PvpManager.onKilled(player.conn)
+        return true
+    end
+
+    return false
 end
 
 return LuaBridge

@@ -8,12 +8,13 @@
 --
 --]]
 
-local FileApi = require("web.features.files.FileApi")
-local MailApi = require("web.features.mail.MailApi")
-local MemberApi = require("web.features.membership.MemberApi")
+local FileApi     = require("web.features.files.FileApi")
+local MailApi     = require("web.features.mail.MailApi")
+local MemberApi   = require("web.features.membership.MemberApi")
 local GiftCodeApi = require("web.features.giftcode.GiftCodeApi")
+local ItemApi     = require("web.features.item.ItemApi")
 
-local WebServer = class("WebServer")
+local WebServer   = class("WebServer")
 
 function WebServer:ctor()
     self.server = HttpServer.new()
@@ -21,7 +22,8 @@ function WebServer:ctor()
         FileApi,
         MailApi,
         MemberApi,
-        GiftCodeApi
+        GiftCodeApi,
+        ItemApi
     }
 end
 

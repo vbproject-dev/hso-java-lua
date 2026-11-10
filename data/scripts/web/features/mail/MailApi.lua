@@ -15,7 +15,7 @@ local MailController = require("web.features.mail.MailController")
 local MailApi = {}
 
 function MailApi:post(request)
-    if request.path ~= "/api/mail" then
+    if request.path ~= "/lua/mail" then
         return
     end
 

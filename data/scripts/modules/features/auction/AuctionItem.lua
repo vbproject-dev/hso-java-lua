@@ -36,6 +36,7 @@ function AuctionItem:ctor(data)
         end
 
         self.itemObject = eq
+        self.itemObject.islock = false
     end
 end
 

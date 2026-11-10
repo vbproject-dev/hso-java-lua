@@ -276,6 +276,7 @@ public class Session implements Runnable {
         System.out.println("disconnect session " + user + " - online : " + (Session.SESSION_LIST.size() - 1));
     }
 
+
     public void addmsg(Message m) {
         if (connected) {
             this.list_msg.add(m);
@@ -493,7 +494,7 @@ public class Session implements Runnable {
         } else {
             version = Integer.parseInt(ver.replace(".", ""));
         }
-        int MIN_VERSION = 309;
+        int MIN_VERSION = 280;
         if (version < MIN_VERSION) {
             loginFail("Silakan update ke versi terbaru.\nSilakan kunjungi http://ksatria.vbpixel.com untuk mendownload patch terbaru.");
             return;

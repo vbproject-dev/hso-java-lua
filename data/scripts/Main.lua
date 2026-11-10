@@ -13,6 +13,7 @@ require "core.Constants"
 require "core.Logger"
 require "core.LuaBridge"
 local WebServer = require "web.WebServer"
+local PvpManager = require "modules.features.pvp.PvpManager"
 
 
 local MySQL           = require "core.MySQL"
@@ -27,7 +28,7 @@ DEBUG                     = true
 local WEB                 = nil
 
 local MYSQL_ELAPSED       = 0
-local MYSQL_PING_INTERVAL = 300
+local MYSQL_PING_INTERVAL = 30
 
 function Main.onLoad()
     -- Setup MYSQL
@@ -86,12 +87,14 @@ function Main.onUpdate(dt)
         --     unit = "KB"
         -- end
 
-        -- log("[LUA MEM USED] : %.2f %s", memory, unit)
+        -- log("[MEM USED] : %.2f %s", memory, unit)
     end
 
     if WEB then
         WEB:pollEvents()
     end
+
+    PvpManager.update(dt)
 end
 
 function Main.onDestroy()

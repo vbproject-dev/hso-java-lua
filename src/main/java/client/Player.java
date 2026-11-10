@@ -1700,16 +1700,13 @@ public class Player extends Body {
     }
 
     public void changeMap(Player p, Vgo vgo) throws IOException {
-        // ── Validasi akses map premium (111-114) ──────────────────────────
-        // Hanya bisa masuk dari map 115 (gateway) dan harus punya sesi aktif
+
         if (!feature.teleport.PremiumTeleportManager.gI().canEnterPremiumMap(p, vgo.toMap)) {
             if (feature.teleport.PremiumTeleportManager.isPremiumMap(vgo.toMap)) {
                 if (!feature.teleport.PremiumTeleportManager.isGatewayMap(p.map.mapId)) {
-                    Service.send_notice_box(p.conn,
-                            "❌ Akses ditolak!\nKamu harus berada di Area Gateway (map 115)\nuntuk masuk ke area premium.");
+                    Service.send_notice_box(p.conn, "❌ Akses ditolak!\nKamu harus berada di Area Gateway (map 115)\nuntuk masuk ke area premium.");
                 } else {
-                    Service.send_notice_box(p.conn,
-                            "❌ Akses ditolak!\nKamu tidak memiliki sesi premium aktif.\nBeli paket di Batu Teleport Premium terlebih dahulu.");
+                    Service.send_notice_box(p.conn, "❌ Akses ditolak!\nKamu tidak memiliki sesi premium aktif.\nBeli paket di Batu Teleport Premium terlebih dahulu.");
                 }
             }
             return;

@@ -50,10 +50,18 @@ return {
             session:addmsg(m)
         end,
 
+        setFlag = function(session, flag)
+            local packet = Java.new("client.io.Message", Cmd.PK)
+            packet:writer():writeShort(session.p.objectId);
+            packet:writer():writeByte(flag);
+            Java.callStatic("game.map.MapService", "broadcast", session.p.map, packet)
+
+            session.p.typepk = flag
+        end,
+
         goMap = function(session, mapId, x, y)
-            local player = session.p
             local vgo = Java.callStatic("model.map.Vgo", "create", mapId, x, y)
-            player:changeMap(player, vgo)
+            session.p:changeMap(session.p, vgo)
         end,
 
         openUI = function(session, id)
@@ -105,6 +113,20 @@ return {
             session:addmsg(packet)
         end,
 
+        countdown = function(session, text, second)
+            local packet = Java.new("client.io.Message", Cmd.UPDATE_INFO_CLAN_HOLD)
+            packet:writer():writeByte(1);
+            packet:writer():writeByte(2);
+            packet:writer():writeShort(second);
+            packet:writer():writeUTF(text);
+            packet:writer():writeShort(0);
+            packet:writer():writeUTF("");
+            session:addmsg(packet)
+        end,
+
+        worldChat = function(chat)
+            Java.callStatic("core.Manager", "gI"):chatKTGprocess(chat)
+        end,
 
         showReward = function(session, data)
             local packet = Java.new("client.io.Message", 78)

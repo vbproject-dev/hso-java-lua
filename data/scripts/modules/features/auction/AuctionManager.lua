@@ -329,7 +329,6 @@ function AuctionManager.buy(session, auctionId)
     session.p:updateGem(-price)
 
     -- Give item to buyer
-
     session.p.item:add_item_bag3(auction.itemObject)
     session.p.item:updateBag()
 

@@ -23,6 +23,7 @@ import game.event.GameEventManager;
 import event_daily.*;
 import client.io.Session;
 import model.ServerSetting;
+import model.mount.MountFrames;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONValue;
 import game.guild.Guild;
@@ -127,6 +128,7 @@ public class Manager {
     public static final List<String> PlayersWinCThanh = new ArrayList<>();
     public static final List<Notification> notifications = new ArrayList<>();
     public static SvConfig svConfig;
+    public static List<MountFrames> mountFrames = new ArrayList<>();
     public ServerSetting setting;
     public boolean useLua = false;
     public List<Skill> skillList = new ArrayList<>();
@@ -231,91 +233,102 @@ public class Manager {
         if (sv != null) {
 
             // PREVIOUS FRAME
-            byte[][] prevFrame = sv.getPreviousFrame();
-            ou.writeByte(prevFrame.length);
-            for (byte[] bytes : prevFrame) {
-                ou.writeByte(bytes.length);
-                for (byte aByte : bytes) {
-                    ou.writeByte(aByte);
+            ou.writeByte(mountFrames.size());
+            mountFrames.forEach(frame -> {
+                try {
+                    writeFrame(ou, frame.getFramePrevious());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            }
+            });
+
 
             // CHAR STAND FRAME
-            byte[][] dyCharStand = sv.getDyCharStand();
-            ou.writeByte(dyCharStand.length);
-            for (byte[] bytes : dyCharStand) {
-                ou.writeByte(bytes.length);
-                for (byte aByte : bytes) {
-                    ou.writeByte(aByte);
+            ou.writeByte(mountFrames.size());
+            mountFrames.forEach(frame -> {
+                try {
+                    writeFrame(ou, frame.getDyStand());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            }
+            });
 
             // CHAR MOVE FRAME
-            byte[][] dyCharMove = sv.getDyCharMove();
-            ou.writeByte(dyCharMove.length);
-            for (byte[] bytes : dyCharMove) {
-                ou.writeByte(bytes.length);
-                for (byte aByte : bytes) {
-                    ou.writeByte(aByte);
+            ou.writeByte(mountFrames.size());
+            mountFrames.forEach(frame -> {
+                try {
+                    writeFrame(ou, frame.getDyMove());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            }
+            });
+
 
             // DX
-            byte[][] dx = sv.getDx();
-            ou.writeByte(dx.length);
-            for (byte[] bytes : dx) {
-                ou.writeByte(bytes.length);
-                for (byte aByte : bytes) {
-                    ou.writeByte(aByte);
+            ou.writeByte(mountFrames.size());
+            mountFrames.forEach(frame -> {
+                try {
+                    writeFrame(ou, frame.getDx());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            }
+            });
+
 
             // DY
-            byte[][] dy = sv.getDy();
-            ou.writeByte(dy.length);
-            for (byte[] bytes : dy) {
-                ou.writeByte(bytes.length);
-                for (byte aByte : bytes) {
-                    ou.writeByte(aByte);
+            ou.writeByte(mountFrames.size());
+            mountFrames.forEach(frame -> {
+                try {
+                    writeFrame(ou, frame.getDy());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            }
+            });
+
 
             // MOVE LEFT AND RIGHT
-            byte[][] moveLr = sv.getMoveFramesLr();
-            ou.writeByte(moveLr.length);
-            for (byte[] bytes : moveLr) {
-                ou.writeByte(bytes.length);
-                for (byte aByte : bytes) {
-                    ou.writeByte(aByte);
+            ou.writeByte(mountFrames.size());
+            mountFrames.forEach(frame -> {
+                try {
+                    writeFrame(ou, frame.getMoveFrameLr());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            }
+            });
+
 
             // MOVE DOWN
-            byte[][] moveDown = sv.getMoveFramesDown();
-            ou.writeByte(moveDown.length);
-            for (byte[] bytes : moveDown) {
-                ou.writeByte(bytes.length);
-                for (byte aByte : bytes) {
-                    ou.writeByte(aByte);
+            ou.writeByte(mountFrames.size());
+            mountFrames.forEach(frame -> {
+                try {
+                    writeFrame(ou, frame.getMoveFrameDown());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            }
+            });
+
 
             // MOVE UP
-            byte[][] moveUp = sv.getMoveFramesUp();
-            ou.writeByte(moveUp.length);
-            for (byte[] bytes : moveUp) {
-                ou.writeByte(bytes.length);
-                for (byte aByte : bytes) {
-                    ou.writeByte(aByte);
+            ou.writeByte(mountFrames.size());
+            mountFrames.forEach(frame -> {
+                try {
+                    writeFrame(ou, frame.getMoveFrameUp());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            }
+            });
+
 
             // SPEED
-            byte[] speed = sv.getSpeed();
-            ou.writeByte(speed.length);
-            for (byte spd : speed) {
-                ou.writeByte(spd);
-            }
+            ou.writeByte(mountFrames.size());
+            mountFrames.forEach(frame -> {
+                try {
+                    ou.writeByte(frame.getSpeed());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
 
             // ATB CANNOT PAINT
             byte[] atb = sv.getAtbCantPaint();
@@ -402,6 +415,13 @@ public class Manager {
         }
 
         return os.toByteArray();
+    }
+
+    private void writeFrame(DataOutputStream ou, byte[] frames) throws IOException {
+        ou.writeByte(frames.length);
+        for (byte val : frames) {
+            ou.writeByte(val);
+        }
     }
 
     public void init() {
@@ -1195,6 +1215,8 @@ public class Manager {
                 .where("version", "V1")
                 .firstAsModel(ServerSetting.class);
 
+        var list = SQLHelper.selectFrom("mount_frames").getAsModel(MountFrames.class);
+        mountFrames.addAll(list);
         return true;
     }
 
@@ -1426,7 +1448,6 @@ public class Manager {
 
     public void reloadResources() {
         PartDataLoader.clearAll();
-
     }
 
     public static Player getPlayerByName(String name) {

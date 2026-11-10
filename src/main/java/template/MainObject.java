@@ -1135,6 +1135,21 @@ public class MainObject {
             mob.top_dame.merge(p.name, (long) dame, Long::sum);
         }
 
+        if (ObjAtk instanceof Player attacker) {
+            Object target = null;
+
+            if (focus instanceof Player player) {
+                target = player;
+            } else if (focus instanceof MobInMap monster) {
+                target = monster;
+            }
+
+            if (target != null) {
+                Long additional = JavaToLua.call("core.LuaBridge.onAttack", new Object[]{attacker, target, dame});
+                if (additional != null) dame += additional;
+            }
+        }
+
         if (focus.hp <= 0) {
             // -130: efek grace period anti-oneshot — diberikan setelah player diselamatkan di 5 HP,
             // supaya hit kecil berikutnya (termasuk pas baru pindah map) tidak langsung membunuh lagi.
@@ -1197,7 +1212,10 @@ public class MainObject {
 
                     if (Manager.gI().useLua && NativeLua.isLoaded()) {
                         Player localPlayer = (Player) focus;
-                        JavaToLua.call("core.LuaBridge.onPlayerDie", new Object[]{localPlayer});
+                        Boolean isHandleByLua = JavaToLua.call("core.LuaBridge.onPlayerDie", new Object[]{localPlayer});
+                        if (isHandleByLua != null && isHandleByLua) {
+                            return;
+                        }
                     }
 
                     if (gameMap.mapId == 102) {
@@ -1211,13 +1229,7 @@ public class MainObject {
                         Manager.gI().chatKTGprocess(focus.name + " was killed by " + ObjAtk.name);
                         BTF btf = GameEventManager.gI().getEvent(BTF.class);
                         if (btf != null) {
-                            // FIX: ObjAtk bisa berupa MobInMap (rumah/boss "Ular Ratu"
-                            // yang membunuh pemain), bukan cuma Player. Cast langsung ke
-                            // Player tanpa cek ini akan ClassCastException dan meng-crash
-                            // proses attack begitu monster yang membunuh pemainnya (makin
-                            // sering terjadi sekarang setelah AI "Penjaga" & buff kecepatan
-                            // serang rumah aktif lagi). Poin +5 cuma relevan kalau
-                            // pembunuhnya memang pemain lain (PK), bukan monster.
+
                             if (ObjAtk.isPlayer()) {
                                 ((Player) ObjAtk).updatePointArena(5);
                             }

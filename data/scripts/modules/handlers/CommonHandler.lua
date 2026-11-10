@@ -15,7 +15,7 @@ local AuctionManager = require("modules.features.auction.AuctionManager")
 local Input          = require("modules.menu.Input")
 local MailManager    = require("modules.features.mail.MailManager")
 local Dialog         = require("modules.menu.Dialog")
-local GameData       = require("data.GameData")
+local PvpManager     = require("modules.features.pvp.PvpManager")
 
 
 local function createOtherMenu(session, itemIndex, item)
@@ -23,14 +23,18 @@ local function createOtherMenu(session, itemIndex, item)
         MenuHelper.when(item.islock, {
             name = "Unlock",
             action = function()
-                item.islock = false
                 local price = 20000
                 local dialog = Dialog.build({
                     id = 1,
                     text = string.format("Biaya %d permata ingin melanjutkan ?", price),
                     onRespond = function(yesOrNo)
                         if yesOrNo then
-                            item.time_use = 0
+                            if session.p:getGem() < price then
+                                Service.notice(session, "Permata tidak cukup")
+                                return
+                            end
+
+                            item.islock = false
                             session.p:updateGem(-price)
                             session.p.item:updateBag()
                         end
@@ -53,6 +57,11 @@ local function createOtherMenu(session, itemIndex, item)
                     text = string.format("Biaya %d permata ingin melanjutkan ?", price),
                     onRespond = function(yesOrNo)
                         if yesOrNo then
+                            if session.p:getGem() < price then
+                                Service.notice(session, "Permata tidak cukup")
+                                return
+                            end
+
                             item.time_use = 0
                             session.p:updateGem(-price)
                             session.p.item:updateBag()
@@ -150,20 +159,14 @@ local function onMiniGame(session, packet)
     return false
 end
 
+
 local function onEnterGame(session, packet)
     MailManager.notifyUnread(session)
 
-    -- local haku = GameData.getNpc(115)
-    -- local npcs = ArrayList.new()
-    -- if session.p.map.mapId == 1 then
-    --     npcs:add({
-    --         x = 320,
-    --         y = 240,
-    --         data = haku
-    --     })
-    -- end
+    if session.p.map.mapId == 102 then
+        PvpManager.onEnter(session)
+    end
 
-    -- Service.sendNpc(session, npcs)
     return false
 end
 

@@ -1,8 +1,9 @@
-local AuctionManager = require "modules.features.auction.AuctionManager"
-local MailManager    = require "modules.features.mail.MailManager"
-local MemberManager  = require "modules.features.membership.MemberManager"
+local AuctionManager  = require "modules.features.auction.AuctionManager"
+local MailManager     = require "modules.features.mail.MailManager"
+local MemberManager   = require "modules.features.membership.MemberManager"
+local GiftCodeManager = require "modules.features.giftcode.GiftCodeManager"
 
-local GameData       = {
+local GameData        = {
     npcData = ArrayList.new(),
     configs = ArrayList.new(),
 }
@@ -28,6 +29,7 @@ function GameData.loadData()
     AuctionManager.load(GameData.getConfig().auction)
     MailManager.load()
     MemberManager.load()
+    GiftCodeManager.load()
     return true
 end
 

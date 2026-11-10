@@ -66,7 +66,7 @@ public class Item3 {
             itbag.islock = true;
             itbag.name = tmp.getName();
             itbag.tier = 0;
-            itbag.op = tmp.getOp();
+            itbag.op = new ArrayList<>(tmp.getOp());
             itbag.time_use = 0;
             return itbag;
         }

@@ -140,17 +140,7 @@ public class MapService {
                 CastleSiegeManager.PlayerDie(p);
             }
 
-            // Bug fix (PVP/King Cup): kotak timer/countdown (-104) yang ditampilkan
-            // PvpSession.sendCountdownMessage() saat duel PVP tidak pernah ditutup
-            // lagi saat pemain keluar dari map arena (map 100/102) — baik lewat
-            // kickPlayers() KingCup, releasePlayer() PvpSession, changeMap() biasa,
-            // maupun disconnect (Session.disconnect() -> leave() ini juga). Dulu ada
-            // method leave_by_loidai() yang isinya persis fix ini, tapi tidak pernah
-            // dipanggil dari mana pun sehingga tidak berefek sama sekali. Samakan
-            // dengan referensi (map.kingCupMap != null -> send_time_box(p, 0, ...)
-            // di leave()): kirim paket "tutup box" ke SEMUA yang keluar dari map
-            // lôi đài (arena maupun lobi map 100), baik peserta pertandingan maupun
-            // penonton, supaya UI timer tidak nyangkut sampai relog.
+
             if (gameMap.isMapLoiDai() && p.conn != null && p.conn.connected) {
                 Message clearBox = new Message(-104);
                 clearBox.writer().writeByte(1);
@@ -196,11 +186,20 @@ public class MapService {
         }
     }
 
+    public static void broadcast(GameMap gameMap, Message m)  {
+       gameMap.players.forEach(p -> {
+           if (p.conn.connected) {
+               p.conn.addmsg(m);
+           }
+       });
+    }
+
     /**
      * Resolve Vgo yang toMap-nya 0 (tidak diset dari DB).
      * Jika player ada di premium map (111-114) dan portal tidak punya tujuan,
      * arahkan kembali ke gateway map 115.
      */
+
     private static Vgo resolveVgo(Vgo vgo, int currentMapId) {
         if (vgo.toMap != 0) {
             return vgo; // toMap sudah diset dengan benar, pakai langsung
@@ -316,7 +315,7 @@ public class MapService {
                     p.pet_di_buon.y = p.y;
                     if (p.pet_di_buon.speed != 1 && p.pet_di_buon.time_skill < System.currentTimeMillis()) {
                         p.pet_di_buon.speed = 1;
-                        //
+
                         System.out.println("map.MapService.send_move()111");
                         Message mm = new Message(7);
                         mm.writer().writeShort(p.pet_di_buon.objectId);

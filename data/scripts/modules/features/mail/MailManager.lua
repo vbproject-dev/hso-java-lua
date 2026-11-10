@@ -25,8 +25,6 @@ function MailManager.load()
     result:forEach(function(data)
         MailManager.mails:add(Mail.new(data))
     end)
-
-    log("[MailManager] %d mails loaded", MailManager.mails:size())
 end
 
 function MailManager.send(data)
@@ -136,7 +134,7 @@ function MailManager.claim(session, mails)
                 itemObject.tier = item.tier or 0
                 itemObject.tierStar = item.tierStar or 0
                 itemObject.color = item.color or itemObject.color
-
+                itemObject.islock = false
                 itemObject.op:clear()
 
                 for _, option in ipairs(item.options or {}) do

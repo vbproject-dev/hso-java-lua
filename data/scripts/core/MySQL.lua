@@ -17,6 +17,36 @@ Query.__index = Query
 
 local _instance = nil
 
+-- FIX: quote identifiers (table / column names) with backticks so reserved words such as
+-- `limit` work, and reject anything that is not a plain name. Backticks already
+-- present in the name are stripped first, so ["`limit`"] still works.
+local function ident(name)
+    assert(type(name) == "string" and #name > 0, "invalid identifier")
+    local clean = name:gsub("`", "")
+    local parts = {}
+    for part in clean:gmatch("[^%.]+") do
+        assert(part:match("^[%a_][%w_]*$"), "invalid identifier: " .. name)
+        parts[#parts + 1] = "`" .. part .. "`"
+    end
+    assert(#parts > 0, "invalid identifier: " .. name)
+    return table.concat(parts, ".")
+end
+
+-- FIX: escape string values. Without this a quote in a description breaks the query,
+-- and user input can inject SQL.
+local ESCAPES = {
+    ["\0"]  = "\\0",
+    ["\\"]  = "\\\\",
+    ["'"]   = "\\'",
+    ['"']   = '\\"',
+    ["\n"]  = "\\n",
+    ["\r"]  = "\\r",
+    ["\26"] = "\\Z",
+}
+local function esc(s)
+    return (s:gsub("[\0\\'\"\n\r\26]", ESCAPES))
+end
+
 
 function MySQL.connect(host, user, password, database, port)
     if _instance then return _instance end
@@ -61,6 +91,7 @@ function MySQL:from(table)
         _wheres = {},
         _order = nil,
         _limit = nil,
+        _offset = nil,
         _cols = "*",
         _class = nil,
     }, Query)
@@ -126,7 +157,7 @@ function Query:where(column, operator, value)
     assert(operators[operator], "invalid where operator")
 
     if type(value) == "string" then
-        value = "'" .. value .. "'"
+        value = "'" .. esc(value) .. "'" -- FIX: escaped
     elseif type(value) == "number" then
         value = tostring(value)
     elseif type(value) == "boolean" then
@@ -135,7 +166,7 @@ function Query:where(column, operator, value)
         error("unsupported where value type: " .. type(value))
     end
 
-    table.insert(self._wheres, column .. " " .. operator .. " " .. value)
+    table.insert(self._wheres, ident(column) .. " " .. operator .. " " .. value) -- FIX: quoted column
 
     return self
 end
@@ -144,7 +175,7 @@ function Query:orderBy(column, direction)
     assert(type(column) == "string" and #column > 0, "orderBy: column must be a non-empty string")
     direction = (direction or "ASC"):upper()
     assert(direction == "ASC" or direction == "DESC", "orderBy: direction must be ASC or DESC")
-    self._order = column .. " " .. direction
+    self._order = ident(column) .. " " .. direction -- FIX: quoted column
     return self
 end
 
@@ -154,13 +185,20 @@ function Query:limit(n)
     return self
 end
 
+function Query:offset(n)
+    assert(type(n) == "number" and n >= 0 and math.floor(n) == n, "offset must be a non-negative integer")
+    self._offset = n
+    return self
+end
+
 function Query:_buildSelect()
-    local sql = string.format("SELECT %s FROM %s", self._cols, self._table)
+    local sql = string.format("SELECT %s FROM %s", self._cols, ident(self._table)) -- FIX: quoted table
     if #self._wheres > 0 then
         sql = sql .. " WHERE " .. table.concat(self._wheres, " AND ")
     end
     if self._order then sql = sql .. " ORDER BY " .. self._order end
     if self._limit then sql = sql .. " LIMIT " .. self._limit end
+    if self._offset then sql = sql .. " OFFSET " .. self._offset end
     return sql
 end
 
@@ -199,10 +237,10 @@ function Query:insert(data)
 
         for k, v in pairs(data) do
             assert(type(k) == "string", "insert: column name must be a string")
-            table.insert(cols, k)
+            table.insert(cols, ident(k)) -- FIX: quoted column
 
             if type(v) == "string" then
-                table.insert(vals, string.format("'%s'", v))
+                table.insert(vals, "'" .. esc(v) .. "'") -- FIX: escaped
             elseif type(v) == "number" then
                 table.insert(vals, tostring(v))
             elseif type(v) == "boolean" then
@@ -215,7 +253,7 @@ function Query:insert(data)
         end
 
         local sql = string.format("INSERT INTO %s (%s) VALUES (%s)",
-            self._table,
+            ident(self._table), -- FIX: quoted table
             table.concat(cols, ", "),
             table.concat(vals, ", "))
 
@@ -243,22 +281,23 @@ function Query:update(data)
 
         for k, v in pairs(data) do
             assert(type(k) == "string", "update: column name must be a string")
+            local col = ident(k) -- FIX: quoted column
 
             if type(v) == "string" then
-                table.insert(sets, string.format("%s = '%s'", k, v))
+                table.insert(sets, string.format("%s = '%s'", col, esc(v))) -- FIX: escaped
             elseif type(v) == "number" then
-                table.insert(sets, string.format("%s = %s", k, tostring(v)))
+                table.insert(sets, string.format("%s = %s", col, tostring(v)))
             elseif type(v) == "boolean" then
-                table.insert(sets, string.format("%s = %s", k, v and "1" or "0"))
+                table.insert(sets, string.format("%s = %s", col, v and "1" or "0"))
             elseif v == nil then
-                table.insert(sets, string.format("%s = NULL", k))
+                table.insert(sets, string.format("%s = NULL", col))
             else
                 error("update: unsupported value type for column '" .. k .. "': " .. type(v))
             end
         end
 
         local sql = string.format("UPDATE %s SET %s WHERE %s",
-            self._table,
+            ident(self._table), -- FIX: quoted table
             table.concat(sets, ", "),
             table.concat(self._wheres, " AND "))
 
@@ -282,7 +321,7 @@ function Query:delete()
         assert(#self._wheres > 0, "delete: at least one where() condition is required to prevent full table wipe")
 
         local sql = string.format("DELETE FROM %s WHERE %s",
-            self._table,
+            ident(self._table), -- FIX: quoted table
             table.concat(self._wheres, " AND "))
 
         local success, err = self._conn:query(sql)

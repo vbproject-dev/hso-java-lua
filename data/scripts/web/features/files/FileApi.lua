@@ -4,42 +4,42 @@ local FileApi = {}
 
 local routes = {
     get = {
-        ["/api/files"] = "list",
-        ["/api/files/files"] = "listFiles",
-        ["/api/files/directories"] = "listDirectories",
-        ["/api/file"] = "get",
-        ["/api/file/info"] = "info",
-        ["/api/file/download"] = "download",
-        ["/api/file/exists"] = "exists",
-        ["/api/file/permissions"] = "permissions",
-        ["/api/file/space"] = "space",
-        ["/api/file/paths"] = "paths"
+        ["/lua/files"] = "list",
+        ["/lua/files/files"] = "listFiles",
+        ["/lua/files/directories"] = "listDirectories",
+        ["/lua/file"] = "get",
+        ["/lua/file/info"] = "info",
+        ["/lua/file/download"] = "download",
+        ["/lua/file/exists"] = "exists",
+        ["/lua/file/permissions"] = "permissions",
+        ["/lua/file/space"] = "space",
+        ["/lua/file/paths"] = "paths"
     },
 
     post = {
-        ["/api/file"] = "create",
-        ["/api/file/upload"] = "upload",
-        ["/api/file/copy"] = "copy",
-        ["/api/file/move"] = "move",
-        ["/api/file/rename"] = "rename",
-        ["/api/file/mkdir"] = "createDirectory",
-        ["/api/file/mkdirs"] = "createDirectories",
-        ["/api/file/link"] = "link",
-        ["/api/file/zip"] = "zip",
-        ["/api/file/unzip"] = "unzip",
-        ["/api/file/modified"] = "setLastModified",
-        ["/api/file/size"] = "setSize",
-        ["/api/file/writable"] = "setWriteable",
-        ["/api/file/readonly"] = "setReadOnly",
-        ["/api/file/executable"] = "setExecutable"
+        ["/lua/file"] = "create",
+        ["/lua/file/upload"] = "upload",
+        ["/lua/file/copy"] = "copy",
+        ["/lua/file/move"] = "move",
+        ["/lua/file/rename"] = "rename",
+        ["/lua/file/mkdir"] = "createDirectory",
+        ["/lua/file/mkdirs"] = "createDirectories",
+        ["/lua/file/link"] = "link",
+        ["/lua/file/zip"] = "zip",
+        ["/lua/file/unzip"] = "unzip",
+        ["/lua/file/modified"] = "setLastModified",
+        ["/lua/file/size"] = "setSize",
+        ["/lua/file/writable"] = "setWriteable",
+        ["/lua/file/readonly"] = "setReadOnly",
+        ["/lua/file/executable"] = "setExecutable"
     },
 
     put = {
-        ["/api/file"] = "save"
+        ["/lua/file"] = "save"
     },
 
     delete = {
-        ["/api/file"] = "delete"
+        ["/lua/file"] = "delete"
     }
 }
 

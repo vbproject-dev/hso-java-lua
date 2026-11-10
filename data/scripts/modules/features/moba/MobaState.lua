@@ -1,0 +1,5 @@
+return {
+    WAITING = "WAITING",
+    PREPARING = "PREPARING",
+    FIGHTING = "FIGHTING",
+}

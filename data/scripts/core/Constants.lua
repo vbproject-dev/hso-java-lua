@@ -11,17 +11,28 @@
 local MySQL     = require "core.MySQL"
 local JavaClass = require "core.JavaClass"
 
-_G.loadTable    = function(tableName, where)
-    local db = MySQL.instance()
-    local query = db:from(tableName)
-
-    if where then
-        local field, value = next(where)
+local function applyWhere(query, where)
+    for field, value in pairs(where or {}) do
         if type(value) == "table" then
             query = query:where(field, value[1], value[2])
         else
             query = query:where(field, value)
         end
+    end
+    return query
+end
+
+_G.loadTable   = function(tableName, where, page, limit, orderBy, direction)
+    local query = applyWhere(MySQL.instance():from(tableName), where)
+
+    if page then
+        page = math.max(1, math.floor(page))
+        limit = math.max(1, math.min(100, math.floor(limit or 20)))
+        query = query:limit(limit):offset((page - 1) * limit)
+    end
+
+    if orderBy then
+        query = query:orderBy(orderBy, direction or "ASC")
     end
 
     local data, err = query:getAll()
@@ -37,7 +48,7 @@ _G.loadTable    = function(tableName, where)
     return list
 end
 
-_G.updateTable  = function(tableName, data, where)
+_G.updateTable = function(tableName, data, where)
     local field, value = next(where)
     local db = MySQL.instance()
 
@@ -50,10 +61,9 @@ _G.updateTable  = function(tableName, data, where)
     return true
 end
 
-_G.findTable    = function(tableName, where)
-    local field, value = next(where)
+_G.findTable   = function(tableName, where)
     local db = MySQL.instance()
-    local data, err = db:from(tableName):where(field, value):getFirst()
+    local data, err = applyWhere(db:from(tableName), where):getFirst()
 
     if err then
         return false, err
@@ -62,7 +72,7 @@ _G.findTable    = function(tableName, where)
     return data
 end
 
-_G.insertTable  = function(tableName, data)
+_G.insertTable = function(tableName, data)
     local db = MySQL.instance()
     local result, err = db:from(tableName):insert(data)
 
@@ -73,7 +83,7 @@ _G.insertTable  = function(tableName, data)
     return result
 end
 
-_G.deleteTable  = function(tableName, where)
+_G.deleteTable = function(tableName, where)
     local field, value = next(where)
     local db = MySQL.instance()
 
@@ -86,7 +96,7 @@ _G.deleteTable  = function(tableName, where)
     return result
 end
 
-_G.try          = function(func, ...)
+_G.try         = function(func, ...)
     local success, err = xpcall(func, debug.traceback, ...)
 
     if not success then
@@ -110,4 +120,4 @@ _G.try          = function(func, ...)
     return err
 end
 
-_G.CLASS        = JavaClass
+_G.CLASS       = JavaClass

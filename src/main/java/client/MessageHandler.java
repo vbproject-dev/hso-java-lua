@@ -369,6 +369,8 @@ public class MessageHandler {
 
 
                 int npcId = m.reader().readByte();
+
+                conn.state.clear();
                 if (Manager.gI().useLua && NativeLua.isLoaded()) {
 
                     isHandledByLua = JavaToLua.call("core.LuaBridge.onTalk", new Object[]{conn, npcId});
@@ -682,7 +684,6 @@ public class MessageHandler {
                 break;
             }
             default: {
-                System.out.println("default onRecieveMsg : " + m.cmd);
                 break;
             }
         }

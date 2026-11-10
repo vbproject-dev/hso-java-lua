@@ -13,7 +13,7 @@ local MemberController = require "web.features.membership.MemberController"
 local MemberApi = {}
 
 function MemberApi:post(request)
-    if request.path ~= "/api/membership" then
+    if request.path ~= "/lua/membership" then
         return
     end
 
