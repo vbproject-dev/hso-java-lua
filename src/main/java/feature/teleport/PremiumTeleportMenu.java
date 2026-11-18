@@ -12,35 +12,6 @@ import template.ItemTemplate4;
 import java.io.IOException;
 import java.util.Map;
 
-/**
- * PremiumTeleportMenu
- *
- * Menu yang muncul ketika player mengklik NPC Teleport Premium.
- *
- * ────────────────────────────────────────────────
- * NPC yang terlibat:
- *   NPC -100  = Batu Teleport di desa luar
- *               → Teleport GRATIS ke Map 115 (Desa Ajaib)
- *   NPC -102  = NPC di Map 115 (Desa Ajaib)
- *               → Jual paket, pilih map tujuan 111-114
- *
- * Alur pembelian:
- *   1. Pilih map tujuan (111-114)
- *   2. Pilih durasi (1/2/3 jam)
- *   3. Pilih metode bayar (Gems / Tiket)
- *   4. Konfirmasi (Yes/No)
- *   5. Sesi aktif → teleport langsung ke map tujuan
- *
- * Jika sesi sudah aktif → bisa langsung pilih map tanpa bayar (gratis)
- * ────────────────────────────────────────────────
- *
- * Map Premium (rantai linear):
- *   115 Desa Ajaib   → entry point, gateway
- *   111 Elan Pletau  → area 1
- *   112 Queer Wood   → area 2
- *   113 Emerald Cave → area 3
- *   114 Dagnues Nest → area 4 (ujung)
- */
 public class PremiumTeleportMenu {
 
     private static final int NPC_LOBBY = -100;   // Batu Teleport di desa luar
@@ -74,6 +45,7 @@ public class PremiumTeleportMenu {
             //{112, 120, 720},   // Queer Wood    — dekat warp masuk dari 111
             //{113, 24,  816},   // Emerald Cave  — dekat warp masuk dari 112
             //{114, 480, 48},    // Dagnues Nest  — tengah atas (map baru)
+            {2,  396,  696},    // Map 2 (Desa Ajaib) — untuk teleport balik ke desa luar
     };
 
     private static final String[] MAP_NAMES = {
@@ -81,6 +53,7 @@ public class PremiumTeleportMenu {
             // "Queer Wood",
             // "Emerald Cave",
             // "Dagnues Nest",
+            "Area Tambang"
     };
 
     // ---------------------------------------------------------------
