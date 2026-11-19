@@ -1,5 +1,6 @@
-local Service = require("core.JavaClass").Service
-local PvpState = require("modules.features.pvp.PvpState")
+local Service   = require("core.JavaClass").Service
+local PvpState  = require("modules.features.pvp.PvpState")
+local PvpConfig = require("modules.features.pvp.PvpConfig")
 
 
 local PvpSession = class("PvpSession")
@@ -63,8 +64,8 @@ function PvpSession:startFight(fightTimeout)
 end
 
 function PvpSession:enterMap()
-    Service.goMap(self.a, 102, 228, 228)
-    Service.goMap(self.b, 102, 492, 228)
+    Service.goMap(self.a, PvpConfig.MAP_ID, 228, 228)
+    Service.goMap(self.b, PvpConfig.MAP_ID, 492, 228)
 end
 
 function PvpSession:goHome()

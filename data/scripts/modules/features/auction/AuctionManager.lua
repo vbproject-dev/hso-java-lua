@@ -48,34 +48,12 @@ function AuctionManager.load(cfg)
             local auction = AuctionItem.new(data)
 
             if auction.status == AuctionManager.STATUS.ONSALE and auction:isExpired() then
-                MailManager.send({
-                    player_id = auction.playerId,
-                    sender = "Black Market",
-                    message = string.format("Item lelang %s telah kadaluarsa.", auction.itemName),
-                    items = {
-                        {
-                            item_id = auction.itemId,
-                            amount = 1,
-                            name = auction.itemName,
-                            category = auction.category,
-                            color = auction.itemInfo.color,
-                            tier = auction.itemInfo.tier,
-                            tierStar = auction.itemInfo.tierStar,
-                            options = auction.itemInfo.options
-                        }
-                    },
-                    type = Mail.TYPE.AUCTION
-                })
-
-                -- Delete from auction
-                local ok, err = deleteTable("auction", { id = auction.id })
-                if not ok then
-                    log("[AuctionManager] Failed to delete auction %d %s", auction.id, err)
+                if not AuctionManager.returnItem(auction, "Item lelang %s telah kadaluarsa.") then
+                    log("[AuctionManager] Failed to return expired auction %d", auction.id)
                 end
-                return
+            else
+                AuctionManager.auctionItems:add(auction)
             end
-
-            AuctionManager.auctionItems:add(auction)
         end)
     else
         log("[AuctionManager] error: %s", err)
@@ -220,30 +198,10 @@ function AuctionManager.cancel(session, auctionId)
         return false
     end
 
-    MailManager.send({
-        player_id = session.p.objectId,
-        sender = "Black Market",
-        message = string.format("Item lelang %s telah dibatalkan.", auction.itemName),
-        items = {
-            {
-                item_id = auction.itemId,
-                quantity = auction.quantity,
-                name = auction.itemName,
-                category = auction.category,
-                color = auction.itemInfo.color,
-                tier = auction.itemInfo.tier,
-                tierStar = auction.itemInfo.tierStar,
-                options = auction.itemInfo.options
-            }
-        },
-        type = Mail.TYPE.AUCTION
-    })
 
     auction.status = AuctionManager.STATUS.CANCEL
 
-    local ok, err = deleteTable("auction", { id = auction.id })
-    if not ok then
-        log("[AuctionManager] Failed to delete auction %d: %s", auction.id, err)
+    if not AuctionManager.returnItem(auction, "Item lelang %s telah dibatalkan.") then
         return false
     end
 
@@ -265,30 +223,9 @@ function AuctionManager.cancelAll(session)
     end
 
     auctions:forEach(function(auction)
-        MailManager.send({
-            player_id = session.p.objectId,
-            sender = "Black Market",
-            message = string.format("Item lelang %s telah dibatalkan.", auction.itemName),
-            items = {
-                {
-                    item_id = auction.itemId,
-                    quantity = auction.quantity,
-                    name = auction.itemName,
-                    color = auction.itemInfo.color,
-                    category = auction.category,
-                    tier = auction.itemInfo.tier,
-                    tierStar = auction.itemInfo.tierStar,
-                    options = auction.itemInfo.options
-                }
-            },
-            type = Mail.TYPE.AUCTION
-        })
-
         auction.status = AuctionManager.STATUS.CANCEL
 
-        local ok, err = deleteTable("auction", { id = auction.id })
-        if not ok then
-            log("[AuctionManager] Failed to delete auction %d: %s", auction.id, err)
+        if not AuctionManager.returnItem(auction, "Item lelang %s telah dibatalkan.") then
             return
         end
 
@@ -296,6 +233,34 @@ function AuctionManager.cancelAll(session)
     end)
 
     Service.notice(session, "Semua penjualan berhasil dibatalkan")
+    return true
+end
+
+function AuctionManager.returnItem(auction, messageFmt)
+    local ok, err = deleteTable("auction", { id = auction.id })
+    if not ok then
+        log("[AuctionManager] Failed to delete auction %d: %s", auction.id, err)
+        return false
+    end
+
+    MailManager.send({
+        player_id = auction.playerId,
+        sender = "Black Market",
+        message = string.format(messageFmt, auction.itemName),
+        items = {
+            {
+                item_id = auction.itemId,
+                quantity = auction.quantity,
+                name = auction.itemName,
+                category = auction.category,
+                color = auction.itemInfo.color,
+                tier = auction.itemInfo.tier,
+                tierStar = auction.itemInfo.tierStar,
+                options = auction.itemInfo.options
+            }
+        },
+        type = Mail.TYPE.AUCTION
+    })
     return true
 end
 

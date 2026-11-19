@@ -22,7 +22,7 @@ function DokuApi:post(request)
         return DokuController.create(request.body)
     end
 
-    -- DOKU calls this. It is safe to leave open: every notification is checked against its signature.
+
     if request.path == "/lua/doku/notify" then
         return DokuController.notify(request)
     end
