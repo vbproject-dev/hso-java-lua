@@ -161,8 +161,33 @@ local function onMiniGame(session, packet)
 end
 
 
+
+
 local function onEnterGame(session, packet)
     MailManager.notifyUnread(session)
+
+    local createNPC = function()
+        local GameData = require("data.GameData")
+        local mapData = GameData.getMapData(session.p.map.mapId)
+
+        local list = ArrayList.new()
+        for __, npcPos in ipairs(mapData.npc) do
+            local npcData = GameData.getNpcData(npcPos.id)
+            if not npcData then return end
+
+            -- Service.removeNpc(session, npcData.id)
+
+            list:add({
+                x = npcPos.x,
+                y = npcPos.y,
+                data = npcData
+            })
+        end
+
+        Service.sendNpc(session, list)
+    end
+
+    createNPC()
 
     if session.p.map.mapId == PvpConfig.MAP_ID then
         PvpManager.onEnter(session)

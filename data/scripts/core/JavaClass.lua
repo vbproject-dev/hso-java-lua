@@ -84,6 +84,14 @@ return {
             Java.callStatic("core.MenuController", "createTitle", session, id)
         end,
 
+        removeNpc = function(session, id)
+            local packet = Java.new("client.io.Message", Cmd.REMOVE_ACTOR)
+            packet:writer():writeByte(2)
+            packet:writer():writeShort(id)
+            packet:writer():writeByte(2)
+            session:addmsg(packet)
+        end,
+
         sendNpc = function(session, npcs)
             local packet = Java.new("client.io.Message", Cmd.NPC_BIG)
             packet:writer():writeByte(npcs:size());
@@ -104,6 +112,8 @@ return {
             end)
 
             session:addmsg(packet)
+
+            npcs.clear()
         end,
 
         chat = function(session, from, msg)

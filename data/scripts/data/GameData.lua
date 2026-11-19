@@ -6,13 +6,14 @@ local GiftCodeManager = require "modules.features.giftcode.GiftCodeManager"
 local GameData        = {
     npcData = ArrayList.new(),
     configs = ArrayList.new(),
+    mapData = ArrayList.new(),
 }
 
 function GameData.loadData()
     local datasets = {
         { table = "npc",       field = "npcData" },
         { table = "sv_config", field = "configs" },
-
+        { table = "map_data",  field = "mapData" },
     }
 
     for _, dataset in ipairs(datasets) do
@@ -33,9 +34,15 @@ function GameData.loadData()
     return true
 end
 
-function GameData.getNpc(id)
+function GameData.getNpcData(id)
     return GameData.npcData:findFirst(function(npc)
         return npc.id == id
+    end)
+end
+
+function GameData.getMapData(id)
+    return GameData.mapData:findFirst(function(map)
+        return map.id == id
     end)
 end
 
