@@ -82,6 +82,7 @@ import template.MemberBattlefield;
 import template.Option;
 import template.PetOption;
 import template.PartFashion;
+import template.Permata_Event;
 import template.Pet_di_buon_manager;
 import template.box_item_template;
 import utils.CheckItem;
@@ -1750,25 +1751,30 @@ public class MenuController {
                         int totalBarang = conn.p.pet_di_buon.item.size();
                         int bonusGem = 0;
                         short bonusItemId = -1;
+                        short bonusItemId2 = -1;
                         short bonusItemQty = 0;
                         String bonusMsg = "";
 
                         if (totalBarang >= 10) {
                             // 10+ barang: gem besar + item bonus
-                            bonusGem = 500;
-                            bonusItemId = Medal_Material_V2.m_yellow[Util.random(0, 9)];
-                            bonusItemQty = 3;
-                            bonusMsg = "\n+ Bonus Pedagang Ulung: " + bonusGem + " permata + " + bonusItemQty + "x Material Medal V2 (Kuning)!";
+                            bonusGem = 200;
+                            // bonusItemId = Medal_Material_V2.m_yellow[Util.random(0, 9)];
+                            bonusItemId2 = 478;
+                            bonusItemQty = 10;
+                            bonusMsg = "\n+ Bonus Pedagang Ulung: " + bonusGem + " permata + " + bonusItemQty + " Material Event Natal!";
                         } else if (totalBarang >= 6) {
                             // 6-9 barang: gem sedang + 1 item bonus
-                            bonusGem = 200;
-                            bonusItemId = Medal_Material_V2.m_yellow[Util.random(0, 9)];
-                            bonusItemQty = 1;
-                            bonusMsg = "\n+ Bonus Pedagang Mahir: " + bonusGem + " permata + " + bonusItemQty + "x Material Medal V2 (Kuning)!";
+                            bonusGem = 100;
+                            // bonusItemId = Medal_Material_V2.m_yellow[Util.random(0, 9)];
+                            bonusItemId2 = 478;
+                            bonusItemQty = 8;
+                            bonusMsg = "\n+ Bonus Pedagang Mahir: " + bonusGem + " permata + " + bonusItemQty + " Material Event Natal!";
                         } else if (totalBarang >= 3) {
                             // 3-5 barang: hanya gem kecil
                             bonusGem = 50;
-                            bonusMsg = "\n+ Bonus Pedagang: " + bonusGem + " permata!";
+                            bonusItemId2 = 478;
+                            bonusItemQty = 6;
+                            bonusMsg = "\n+ Bonus Pedagang: " + bonusGem + " permata!" + bonusItemQty + " Material Event Natal!";
                         }
                         // 1-2 barang: hanya gold, tidak ada bonus tambahan
 
@@ -1777,6 +1783,9 @@ public class MenuController {
                         }
                         if (bonusItemId > 0) {
                             conn.p.item.add_item_bag47(bonusItemId, bonusItemQty, (byte) 7);
+                        }
+                        if (bonusItemId2 > 0) {
+                            conn.p.item.add_item_bag47(bonusItemId2, bonusItemQty, (byte) 7);
                         }
                         // =========================================================
 
