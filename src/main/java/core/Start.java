@@ -10,13 +10,12 @@ public class Start {
 
     public static void main(String[] args) {
 
-        LuaLoop gameLoop = new LuaLoop(20);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (SQL.is_connected) {
 
                 SQL.gI().close();
-                gameLoop.stop();
+
                 NativeLua.destroy();
 
             }
@@ -32,7 +31,7 @@ public class Start {
 
             NativeLua.load("data/scripts/Main.lua");
 
-            gameLoop.start();
+
         }
 
     }

@@ -16,6 +16,7 @@ local Input          = require("modules.menu.Input")
 local MailManager    = require("modules.features.mail.MailManager")
 local Dialog         = require("modules.menu.Dialog")
 local PvpManager     = require("modules.features.pvp.PvpManager")
+local PvpConfig      = require("modules.features.pvp.PvpConfig")
 
 
 local function createOtherMenu(session, itemIndex, item)
@@ -163,7 +164,7 @@ end
 local function onEnterGame(session, packet)
     MailManager.notifyUnread(session)
 
-    if session.p.map.mapId == 102 then
+    if session.p.map.mapId == PvpConfig.MAP_ID then
         PvpManager.onEnter(session)
     end
 

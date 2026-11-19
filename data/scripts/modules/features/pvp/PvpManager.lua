@@ -13,6 +13,7 @@ local PvpManager = {
     QUEUE_TIMEOUT = 30,
     PREPARE_TIMEOUT = 10,
     FIGHT_TIMEOUT = 300,
+    MAP_ID = 122,
 }
 
 function PvpManager.getRange(level)
