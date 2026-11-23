@@ -77,13 +77,13 @@ public class NatalMonster extends GameEvent {
 
     @Override
     protected boolean isEnabled() {
-        return Manager.gI().event_malam_suro_ambush;
+        return Manager.gI().event_natal_monster;
     }
 
     @Override
     protected void onStart() {
         nextSpawnCountdown = randomIntervalSec();
-        log.info("[MalamSuroAmbush] Dimulai, ambush pertama dalam {} detik.", nextSpawnCountdown);
+        log.info("[NatalMonster] Dimulai, ambush pertama dalam {} detik.", nextSpawnCountdown);
     }
 
     @Override
@@ -143,13 +143,13 @@ public class NatalMonster extends GameEvent {
     private boolean trySpawnGhost() {
         GameMap targetMap = pickRandomAmbushMap();
         if (targetMap == null) {
-            log.warn("[MalamSuroAmbush] Tidak ada map valid di AMBUSH_MAP_IDS yang ter-load.");
+            log.warn("[NatalMonster] Tidak ada map valid di AMBUSH_MAP_IDS yang ter-load.");
             return false;
         }
 
         MobTemplate tpl = MobTemplate.getMob(AMBUSH_MOB_TEMPLATE_ID);
         if (tpl == null) {
-            log.error("[MalamSuroAmbush] mob_template_id={} tidak ditemukan di monster_template.", AMBUSH_MOB_TEMPLATE_ID);
+            log.error("[NatalMonster] mob_template_id={} tidak ditemukan di monster_template.", AMBUSH_MOB_TEMPLATE_ID);
             return false;
         }
 
@@ -182,7 +182,7 @@ public class NatalMonster extends GameEvent {
         // Notice ke SELURUH server (semua pemain online), sebut nama map-nya.
         broadcastAll("Hantu Malam Suro muncul di " + targetMap.name
                 + "! Kalahkan sebelum " + (AMBUSH_LIFETIME_SEC / 60) + " menit, atau dia menghilang.");
-        log.info("[MalamSuroAmbush] Hantu muncul di map {} (id={}, zone={}) x={} y={}.",
+        log.info("[NatalMonster] Hantu muncul di map {} (id={}, zone={}) x={} y={}.",
                 targetMap.name, targetMap.mapId, targetMap.zoneId, pos[0], pos[1]);
         return true;
     }
@@ -253,7 +253,7 @@ public class NatalMonster extends GameEvent {
         List<Integer> ids = new ArrayList<>(byMap.keySet());
         int pickedId = ids.get(Util.nextInt(ids.size()));
         List<GameMap> zones = byMap.get(pickedId);
-        log.info("[MalamSuroAmbush] Map ter-load dari whitelist {} -> terpilih {}", ids, pickedId);
+        log.info("[NatalMonster] Map ter-load dari whitelist {} -> terpilih {}", ids, pickedId);
         return zones.get(Util.nextInt(zones.size()));
     }
 
