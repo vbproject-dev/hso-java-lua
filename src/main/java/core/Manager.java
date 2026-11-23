@@ -85,6 +85,7 @@ public class Manager {
     public boolean event_gold_spin = true;
     public boolean event_gem_spin = true;
     public boolean event_christmas = true;
+    public boolean event_natal_monster = true;
     public boolean event_halloween = true;
     public boolean event_malam_suro_ambush = true;
     public boolean event_gerbang_arwah = true;

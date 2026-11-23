@@ -8,6 +8,7 @@ import game.event.halloween.HalloweenEvent;
 import game.event.halloween.MalamSuroAmbush;
 import game.event.halloween.GerbangArwah;
 import game.event.natal.ChristmasEvent;
+import game.event.natal.NatalMonster;
 import game.event.spin.GemSpin;
 import game.event.spin.GoldSpin;
 import core.Manager;
@@ -45,6 +46,7 @@ public class GameEventManager {
         if (m.event_gold_spin) addEvent(new GoldSpin());
         if (m.event_gem_spin) addEvent(new GemSpin());
         if (m.event_christmas) addEvent(new ChristmasEvent());
+        if (m.event_natal_monster) addEvent(new NatalMonster());
         if (m.event_halloween) addEvent(new HalloweenEvent());
         // FIX: dua sub-event Halloween ini sudah ditulis lengkap (extends
         // GameEvent) dan sudah punya flag sendiri di hso.conf, tapi tidak
