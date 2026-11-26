@@ -113,7 +113,7 @@ return {
 
             session:addmsg(packet)
 
-            npcs.clear()
+            npcs:clear()
         end,
 
         chat = function(session, from, msg)

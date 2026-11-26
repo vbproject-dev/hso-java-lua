@@ -8,6 +8,7 @@ import game.event.halloween.HalloweenEvent;
 import game.event.halloween.MalamSuroAmbush;
 import game.event.halloween.GerbangArwah;
 import game.event.natal.ChristmasEvent;
+import game.event.pvp.Moba;
 import game.event.spin.GemSpin;
 import game.event.spin.GoldSpin;
 import core.Manager;
@@ -56,6 +57,8 @@ public class GameEventManager {
         if (m.event_kemerdekaan) addEvent(new KemerdekaanEvent());
         if (m.event_persimpangan_kematian) addEvent(new PersimpanganKematian());
         if (m.event_kemerdekaan_gems_pagi) addEvent(new KemerdekaanGemsPagi());
+
+        addEvent(new Moba());
     }
 
     public void addEvent(GameEvent event) {
@@ -78,11 +81,24 @@ public class GameEventManager {
     public <T extends GameEvent> T getEvent(Class<T> clazz) {
         for (GameEvent e : events) {
             if (clazz.isInstance(e)) {
-                return (T) e;
+                @SuppressWarnings("unchecked")
+                T result = (T) e;
+                return result;
             }
         }
         return null;
     }
+    public <T extends GameEvent> T getEventName(String name) {
+        for (GameEvent event : events) {
+            if (event.getName().equalsIgnoreCase(name)) {
+                @SuppressWarnings("unchecked")
+                T result = (T) event;
+                return result;
+            }
+        }
+        return null;
+    }
+
 
     public GlobalEvent getGlobalEvent(int npcId) {
         return globalEventMap.get(npcId);

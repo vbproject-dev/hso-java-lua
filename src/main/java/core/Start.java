@@ -1,7 +1,6 @@
 package core;
 
 
-import core.lua.LuaLoop;
 import core.lua.NativeLua;
 import lombok.extern.slf4j.Slf4j;
 

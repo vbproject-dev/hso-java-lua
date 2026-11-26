@@ -307,6 +307,7 @@ public class Player extends Body {
     @Setter
     private Integer currentShopPriceType;
 
+
     public void ResetCreateItemStar() {
         isCreateItemStar = false;
         ClazzItemStar = -1;

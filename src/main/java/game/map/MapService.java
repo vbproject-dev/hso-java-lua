@@ -12,6 +12,10 @@ import game.ai.PlayerBot;
 import game.event.GameEventManager;
 import game.event.btf.BTF;
 import game.event.btf.Team;
+import game.event.pvp.Building;
+import game.event.pvp.Match;
+import game.event.pvp.Moba;
+import game.event.pvp.MobaManager;
 import game.guild.Guild;
 import game.pvp.PvpManager;
 import client.Pet;
@@ -749,8 +753,8 @@ public class MapService {
         return objectId >= 31_500 && objectId < 32_000;
     }
 
-    public static void mob_fire(GameMap gameMap, MobInMap mob, Player p_target, int dame, List<Eff_TextFire> listEf) throws IOException {
-        if (mob.template.mob_id >= 89 && mob.template.mob_id <= 92) {
+    public static void mob_fire(GameMap gameMap, MainObject mob, Player p_target, int dame, List<Eff_TextFire> listEf) throws IOException {
+        if (mob.template != null && (mob.template.mob_id >= 89 && mob.template.mob_id <= 92)) {
             return;
         }
         Message m = new Message(10);
@@ -2075,7 +2079,7 @@ public class MapService {
         if (gameMap.isCastleSiegeMap()) {
             CastleSiegeManager.request_livefromdie(gameMap, conn, type);
         } else {
-            if (GameMap.isBattlefieldMap(gameMap.mapId)) {
+            if (GameMap.isBattlefieldMap(gameMap.mapId) || GameMap.isMobaMap(gameMap.mapId)) {
                 return;
             }
             // FIX: map 100/102 = arena lôi đài (duel PvpSession & King Cup).
@@ -2476,33 +2480,45 @@ public class MapService {
             if (type_atk == 0) {
 
                 for (int i = 0; i < n; ++i) {
-                    int ObjAtk = Short.toUnsignedInt(m.reader().readShort());
-                    MobInMap mob_target = MapService.get_mob_by_index(gameMap, ObjAtk);
+                    int targetId = Short.toUnsignedInt(m.reader().readShort());
+                    MobInMap mob_target = MapService.get_mob_by_index(gameMap, targetId);
 
                     if (mob_target == null) {
-                        mob_target = gameMap.GetBoss(ObjAtk);
+                        mob_target = gameMap.GetBoss(targetId);
                     }
 
                     if (GameMap.isBattlefieldMap(gameMap.mapId)) {
+
                         BTF btf = GameEventManager.gI().getEvent(BTF.class);
                         Team team;
-                        // FIX: mob_target can legitimately be null here (e.g. ObjAtk
-                        // refers to a mob index that no longer exists and isn't a boss
-                        // either), but the code accessed mob_target.template.mob_id
-                        // unconditionally, causing
-                        // "NullPointerException: Cannot read field \"template\" because
-                        // \"mob_target\" is null". Skip the tower check when there's no
-                        // target instead of crashing.
                         if (mob_target != null && btf != null && (team = btf.getPlayerTeam(conn.p.objectId)) != null) {
                             if (team.getTowerId() == mob_target.template.mob_id) {
                                 Service.send_notice_nobox_white(conn, "Can't attack");
                                 continue;
                             }
                         }
+
+                    }else if(GameMap.isMobaMap(gameMap.mapId)) {
+
+                        Match match = MobaManager.getInstance().getMatch(conn.p);
+                        Building building;
+                        if (match != null && (building = match.getBuilding(targetId)) != null) {
+                            if (match.isTeamMateBuilding(conn.p, building)) {
+                                Service.send_notice_nobox_white(conn, "You can't attack your team building");
+                                return;
+                            }
+
+                            if (!match.canAttackBuilding(building)) {
+                                Service.send_notice_nobox_white(conn, "This turret is protected");
+                                return;
+                            }
+
+                            MainObject.attack(gameMap, conn.p, building, index_skill, _skill, type);
+                        }
                     }
 
                     if (gameMap.zoneId == gameMap.maxzone && !gameMap.isCastleSiegeMap() && !gameMap.isMapLoiDai()) {
-                        Pet_di_buon pet_di_buon = Pet_di_buon_manager.check(ObjAtk);
+                        Pet_di_buon pet_di_buon = Pet_di_buon_manager.check(targetId);
                         if (pet_di_buon != null) {
                             if (!pet_di_buon.equals(conn.p.pet_di_buon)) {
                                 MainObject.attack(gameMap, conn.p, pet_di_buon, index_skill, _skill, type);
@@ -2510,23 +2526,23 @@ public class MapService {
                         }
                     } else if (mob_target != null) {
                         MainObject.attack(gameMap, conn.p, mob_target, index_skill, _skill, type);
-                    } else if (ObjAtk > 10000 && ObjAtk < 11000) {// mob boss
+                    } else if (targetId > 10000 && targetId < 11000) {// mob boss
                         Message m2 = new Message(17);
                         m2.writer().writeShort(-1);
-                        m2.writer().writeShort(ObjAtk);
+                        m2.writer().writeShort(targetId);
                         conn.addmsg(m2);
                         m2.cleanup();
                     } else if (conn.p.map.mapId == 48) {
                         Dungeon d = DungeonManager.get_list(conn.p.name);
                         if (d != null) {
-                            Mob_Dungeon mod_target_dungeon = d.get_mob(ObjAtk);
+                            Mob_Dungeon mod_target_dungeon = d.get_mob(targetId);
                             if (mod_target_dungeon != null) {
                                 MainObject.attack(gameMap, conn.p, mod_target_dungeon, index_skill, _skill, type);
                             }
                         }
                     } else if (GameMap.isSummonMap(conn.p.map, true) && conn.p.myclan != null) {
 
-                        Crystal temp_mob = conn.p.myclan.get_mo_tai_nguyen(ObjAtk);
+                        Crystal temp_mob = conn.p.myclan.get_mo_tai_nguyen(targetId);
                         if (temp_mob == null) {
                             temp_mob = Manager.gI().mine.get_mob_in_map(gameMap);
                             MainObject.attack(gameMap, conn.p, temp_mob, index_skill, _skill, type);

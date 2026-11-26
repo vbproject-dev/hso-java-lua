@@ -22,6 +22,7 @@ import game.event.kemerdekaan.PersimpanganKematian;
 import game.event.halloween.HalloweenEvent;
 import game.event.halloween.GerbangArwah;
 import game.event.halloween.KristalArwahEvent;
+import game.event.pvp.MobaManager;
 import game.guild.GuildService;
 import game.pvp.PvpManager;
 import client.io.Message;
@@ -466,7 +467,10 @@ public class MessageHandler {
                         mw.cleanup();
                     }
                 }
+                MobaManager.getInstance().onEnter(conn.p);
                 break;
+
+
             }
             case -44: {
                 short reqId = m.reader().readShort();
@@ -607,7 +611,8 @@ public class MessageHandler {
                 break;
             }
             case -51: {
-                Service.send_icon(conn, m);
+                short id = m.reader().readShort();
+                Service.send_icon(conn, id);
                 break;
             }
             case -52: {
