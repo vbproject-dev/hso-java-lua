@@ -101,19 +101,7 @@ public class GameEventManager {
         return globalEventMap.get(npcId);
     }
 
-    /**
-     * Dipakai GameMap.sendNpcData() untuk menentukan apakah sebuah NPC statis
-     * (dari tabel `npc` di map) boleh ditampilkan ke player. NPC yang "milik"
-     * sebuah event (Santa, Paskibraka, Pak Lurah, Nenek Merdeka, Persimpangan,
-     * dst) hanya ditampilkan selama event tersebut aktif — artinya event-nya
-     * enabled di hso.conf DAN sedang dalam jendela tanggal event
-     * (shouldBeRemoved() == false). NPC yang bukan milik event apa pun
-     * (default) selalu tampil seperti biasa.
-     */
     public boolean isEventNpcVisible(int npcId) {
-        // NPC milik global_event (tabel DB, jendela start_time..end_time) selalu tampil selama
-        // global event-nya aktif, tanpa bergantung pada flag/jendela tanggal event Java
-        // (mis. -135 Malam Suro, -123 Kemerdekaan).
         GlobalEvent ge = globalEventMap.get(npcId);
         if (ge != null && isActive(ge)) return true;
         return switch (npcId) {
