@@ -619,9 +619,8 @@ public class Service {
         }
     }
 
-    public static void send_icon(Session conn, Message m) throws IOException {
+    public static void send_icon(Session conn, short id) {
 
-        short id = m.reader().readShort();
         byte[] data = IconHelper.getIcon(conn.zoomlv, id);
 
         if (data == null) {
@@ -633,13 +632,8 @@ public class Service {
             Message m2 = new Message(-51);
             m2.writer().writeShort(id);
             m2.writer().write(data);
-
             conn.addmsg(m2);
-            m2.cleanup();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException ignore) {}
         log.info("No icon found for id: {}", id);
     }
 
@@ -2735,6 +2729,21 @@ public class Service {
     public static void sendEffMap(Player p, int idnpc, int id_eff, int x, int y, int b3, int b4, int b7) throws IOException {
         MapItemEffect.sendTo(p, id_eff, x, y,
                 MapItemEffect.Options.create().key(idnpc).block(b3, b4).flag(b7).dedup(2));
+    }
+
+    public static void sendTime(Player player, String text, int seconds) {
+
+        try {
+            Message message = new Message(-104);
+            message.writer().writeByte(1);
+            message.writer().writeByte(2);
+            message.writer().writeShort(seconds);
+            message.writer().writeUTF(text);
+            message.writer().writeShort(0);
+            message.writer().writeUTF("");
+            player.conn.addmsg(message);
+            message.cleanup();
+        } catch (Exception ignore) {}
     }
 
 }

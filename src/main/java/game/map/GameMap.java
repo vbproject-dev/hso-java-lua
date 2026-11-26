@@ -1002,6 +1002,19 @@ public class GameMap {
         return null;
     }
 
+    public static GameMap getEmptyZone(int id) {
+        for (GameMap[] temp : entrys) {
+            if (temp[0].mapId == id) {
+                for (GameMap zone : temp) {
+                    if (zone != null && zone.players.isEmpty()) {
+                        return zone;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     public static GameMap getMapByIdAndZone(int id, int zone) {
         for (GameMap[] gameMaps : entrys) {
             if (gameMaps.length > zone && gameMaps[0].mapId == id) {
@@ -1877,7 +1890,7 @@ public class GameMap {
     public static boolean is_map_cant_save_site(byte id) {
         return id == 48 || id == 88 || id == 89 || id == 90 || id == 91 || id == 82 || id == 102 || id == 100
                 || (id >= 83 && id <= 87) || (id >= 53 && id <= 61)
-                || GameMap.isBattlefieldMap(id);
+                || GameMap.isBattlefieldMap(id) || GameMap.isMobaMap(id);
     }
 
     public synchronized void add_item_map_leave(GameMap gameMap, Player p_master, ItemMap temp, int mob_index)
@@ -1942,7 +1955,11 @@ public class GameMap {
     }
 
     public static boolean isBattlefieldMap(byte id) {
-        return id >= 53 && id <= 60;
+        return (id >= 53 && id <= 60);
+    }
+
+    public static boolean isMobaMap(byte id) {
+        return id == 122;
     }
 
     public boolean isMapChienTruong() {

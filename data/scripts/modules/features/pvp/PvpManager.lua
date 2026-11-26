@@ -14,6 +14,7 @@ local PvpManager = {
     PREPARE_TIMEOUT = 10,
     FIGHT_TIMEOUT = 300,
     MAP_ID = 122,
+    HOME_DELAY = 5,
 }
 
 function PvpManager.getRange(level)
@@ -82,8 +83,9 @@ end
 function PvpManager.finish(pvp, winner)
     if winner then
         local winPlayer = winner.p
-        local losePlayer = pvp:opponent(winner).p
+        winPlayer.pointarena = winPlayer.pointarena + 10
 
+        local losePlayer = pvp:opponent(winner).p
         losePlayer.isdie = false
         losePlayer.hp = losePlayer.body:getMaxHP()
         losePlayer.mp = losePlayer.body:getMaxMP()
@@ -91,10 +93,7 @@ function PvpManager.finish(pvp, winner)
         Service.worldChat(string.format("(PVP) %s telah dibunuh oleh %s", losePlayer.name, winPlayer.name))
     end
 
-
-    pvp:goHome()
-
-    PvpManager.sessions:remove(pvp)
+    pvp:startFinish(PvpManager.HOME_DELAY)
 end
 
 function PvpManager.onKilled(session)
@@ -131,18 +130,24 @@ function PvpManager.update(dt)
         Service.notice(entry.session, "Lawan tidak ditemukan")
     end)
 
-    -- Prepare finished: start the fight
+
     PvpManager.sessions:filter(function(pvp)
         return pvp:isPrepareDone(now)
     end):forEach(function(pvp)
         pvp:startFight(PvpManager.FIGHT_TIMEOUT)
     end)
 
-    -- Enter / fight timeout
     PvpManager.sessions:filter(function(pvp)
         return pvp:isExpired(now)
     end):forEach(function(pvp)
         PvpManager.finish(pvp, nil)
+    end)
+
+    PvpManager.sessions:filter(function(pvp)
+        return pvp:isFinishDone(now)
+    end):forEach(function(pvp)
+        pvp:goHome()
+        PvpManager.sessions:remove(pvp)
     end)
 end
 

@@ -26,8 +26,30 @@ function PvpSession:isFighting()
     return self.state == PvpState.FIGHTING
 end
 
+function PvpSession:isFinished()
+    return self.state == PvpState.FINISHED
+end
+
+-- Waiting and fighting sessions can time out. Preparing has its own
+-- check, and finished sessions have their own countdown.
 function PvpSession:isExpired(now)
-    return self.state ~= PvpState.PREPARING and self.expiresAt <= now
+    return self.state ~= PvpState.PREPARING
+        and self.state ~= PvpState.FINISHED
+        and self.expiresAt <= now
+end
+
+function PvpSession:isFinishDone(now)
+    return self.state == PvpState.FINISHED and self.expiresAt <= now
+end
+
+-- Fight is over: stop the fight and start the countdown before going home
+function PvpSession:startFinish(homeDelay)
+    self.state = PvpState.FINISHED
+    self.expiresAt = os.time() + homeDelay
+
+    Service.setFlag(self.a, -1)
+    Service.setFlag(self.b, -1)
+    self:countdown("Kembali ke kota", homeDelay)
 end
 
 function PvpSession:isPrepareDone(now)
@@ -69,8 +91,8 @@ function PvpSession:enterMap()
 end
 
 function PvpSession:goHome()
-    Service.setFlag(self.a, -1)
-    Service.setFlag(self.b, -1)
+    Service.countdown(self.a, "", 0)
+    Service.countdown(self.b, "", 0)
 
     Service.goMap(self.a, 1, 432, 354)
     Service.goMap(self.b, 1, 432, 432)

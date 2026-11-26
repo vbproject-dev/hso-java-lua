@@ -19,6 +19,8 @@ import game.event.GameEventManager;
 import game.event.btf.BTF;
 import game.event.btf.Team;
 import game.event.kemerdekaan.KristalEvent;
+import game.event.pvp.Match;
+import game.event.pvp.MobaManager;
 import game.map.Eff_hit_wear22;
 import game.map.Eff_special_skill;
 import game.map.GameMap;
@@ -1235,6 +1237,12 @@ public class MainObject {
                             }
                             btf.onPlayerDie((Player) focus);
                         }
+                    }else if(GameMap.isMobaMap(gameMap.mapId)){
+                        var player = (Player) focus;
+                        Match match = MobaManager.getInstance().getMatch(player);
+                        if (match != null) {
+                            match.onPlayerDie(player, ObjAtk);
+                        }
                     }
                 } else {
                     MapService.MainObj_Die(gameMap, null, focus, true);
@@ -1275,7 +1283,7 @@ public class MainObject {
             }
         } else if (ObjAtk.getTypeObject() == 1 && focus.isPlayer()) {
             // Mob menyerang player — kirim dengan ListEf agar efek refleksi (type=5) ikut terkirim
-            MapService.mob_fire(gameMap, (MobInMap) ObjAtk, (Player) focus, (int) dame, ListEf);
+            MapService.mob_fire(gameMap, ObjAtk, (Player) focus, (int) dame, ListEf);
 
         } else if (ObjAtk.getTypeObject() == 0 && focus.isPlayer()) {
             MapService.MainObj_Fire_Player(gameMap, (Player) focus, ObjAtk, idxSkill, (int) dame, ListEf);

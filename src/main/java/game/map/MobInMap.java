@@ -110,10 +110,6 @@ public class MobInMap extends MainObject {
 
     @Override
     public int getBaseDamage() {
-        // Kalau boss_event: dame sudah di-set dari DB → gunakan langsung (hanya ±5% random)
-        // Kalau boss biasa (dame==0): pakai formula level multiplier
-        // TAMBAHAN: buff dari item4 id 60 "Kemarahan monster" - naikkan damage 50%
-        // selama buff aktif (powerBuffUntil > sekarang).
         double powerBuff = (powerBuffUntil > System.currentTimeMillis()) ? 1.5 : 1.0;
         if (this.isBoss && this.dame > 0) {
             int dmob = Util.random((int) (this.dame * 0.95), (int) (this.dame * 1.05));

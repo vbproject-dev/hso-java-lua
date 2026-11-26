@@ -58,8 +58,6 @@ function MobaSession:enter(session)
     self:countdown("Persiapan", Config.PREPARE_TIME)
 end
 
--- Returns the structure when the hit counts. Only the enemy team is searched,
--- so your own buildings can't be hit
 function MobaSession:attack(session, id, damage)
     local p = self:player(session)
     local enemy = self.teams[3 - p.team]
@@ -97,7 +95,6 @@ function MobaSession:lordKill(session)
     -- TODO: spawn the team's Lord for self:player(session).team
 end
 
--- Team that lost fewer structures, then more kills. nil on a tie
 function MobaSession:leading()
     local a, b = self.teams[1], self.teams[2]
     if a:lost() ~= b:lost() then return a:lost() < b:lost() and 1 or 2 end
